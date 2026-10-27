@@ -97,8 +97,7 @@ img { display: block; max-width: 100%; height: auto; }
 .lead-story h1,
 .post-header h1,
 .page-header h1,
-.section-heading h2,
-.wechat-follow h2 {
+.section-heading h2 {
   font-family: ui-serif, "Songti SC", "STSong", serif;
   font-weight: 800;
   line-height: 1.12;
@@ -186,20 +185,10 @@ img { display: block; max-width: 100%; height: auto; }
 
 .wechat-follow {
   display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 72px;
-  align-items: center;
-  margin: 40px 0 110px;
-  padding: 52px;
-  color: var(--white);
-  background: var(--ink);
+  place-items: center;
+  margin: 72px 0 110px;
 }
-.wechat-follow h2 { margin: 0 0 18px; font-size: clamp(38px, 5vw, 64px); }
-.wechat-follow .eyebrow { color: #f08c82; }
-.wechat-follow p:last-child { max-width: 570px; margin: 0; color: #d9d3c8; }
-.wechat-follow__code { display: grid; gap: 10px; justify-items: center; }
-.wechat-follow__code img { width: 190px; height: 190px; border: 8px solid var(--white); }
-.wechat-follow__code span { color: #d9d3c8; font: 600 10px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: .12em; }
+.wechat-follow img { width: min(300px, 100%); aspect-ratio: 1074 / 1062; object-fit: contain; }
 
 .post-header,
 .page-header { max-width: 940px; padding: 88px 0 68px; border-bottom: 1px solid var(--line); }
@@ -260,7 +249,6 @@ img { display: block; max-width: 100%; height: auto; }
   .lead-story h1 { font-size: clamp(42px, 12vw, 64px); }
   .evidence-window { min-height: 350px; }
   .article-row { grid-template-columns: 130px minmax(0, 1fr) 44px; }
-  .wechat-follow { gap: 36px; padding: 38px; }
 }
 
 @media (max-width: 620px) {
@@ -290,9 +278,8 @@ img { display: block; max-width: 100%; height: auto; }
   .article-row__meta { grid-column: 1 / -1; display: flex; justify-content: space-between; }
   .article-row__body h3 { font-size: 25px; line-height: 1.45; }
   .article-row__arrow { grid-column: 2; grid-row: 2; }
-  .wechat-follow { grid-template-columns: 1fr; margin-bottom: 76px; padding: 30px 24px; }
-  .wechat-follow__code { justify-self: start; }
-  .wechat-follow__code img { width: 168px; height: 168px; }
+  .wechat-follow { margin: 54px 0 76px; }
+  .wechat-follow img { width: min(240px, 100%); }
   .post-header,
   .page-header { padding: 58px 0 48px; }
   .back-link { margin-bottom: 42px; }
