@@ -5,6 +5,12 @@ date: 2026-10-27 20:00:00 +0800
 categories: [AI, Agent]
 tags: [Agent Harness, Pi Durable, Ultimate, 持久化]
 description: "从 Ultimate 与 Pi Durable 看代码更新、进程交接和任务恢复如何衔接，以及为什么持久化不能保证外部动作只执行一次。"
+evidence_label: "恢复路径"
+evidence_caption: "代码版本与执行位置必须一起恢复"
+evidence_steps:
+  - "Git worktree"
+  - "SQLite 状态"
+  - "resume()"
 ---
 
 Agent 如果要修改承载自己的应用，代码写完只是第一步。新代码怎样进入运行中的进程？进程切换时，未完成的任务又从哪里继续？
@@ -35,6 +41,14 @@ Ultimate 把项目定制放在 `.ultimate/` 中。因为这些扩展会执行代
 新核心打开同一个 SQLite 状态目录，重新装配模型和扩展，取回根 conversation 并调用 `resume()`。Pi Durable 记录的 conversation、工具结果和任务检查点，为恢复提供执行位置。[Ultimate harness](https://github.com/HazAT/ultimate/blob/294c6a5edb26a33027b9ea7d8fed3a6b8debe8c0/server/harness.ts#L222-L285) · [Pi Durable：恢复会话](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/README.md#persist-and-resume)
 
 这里有两种需要一起恢复的状态：Git worktree 描述代码版本，持久化存储描述 Agent 执行到哪里。只有代码而没有任务状态，Agent 不知道从哪继续；只有任务状态而没有兼容的代码，也未必能正确解释旧检查点。
+
+<div class="article-evidence" id="evidence-01" role="figure" aria-label="证据 01：代码版本与执行位置必须一起恢复">
+  <p class="article-evidence__label"><span>证据 01</span><span>恢复路径</span></p>
+  <div class="article-evidence__flow" aria-hidden="true">
+    <span class="evidence-node">Git worktree</span><span class="evidence-arrow">→</span><span class="evidence-node">SQLite 状态</span><span class="evidence-arrow">→</span><span class="evidence-node">resume()</span>
+  </div>
+  <p class="article-evidence__caption">代码版本与执行位置必须一起恢复。</p>
+</div>
 
 ## 持久化不等于外部动作只执行一次
 

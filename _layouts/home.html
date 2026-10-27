@@ -1,0 +1,58 @@
+---
+layout: default
+---
+{% assign latest = site.posts.first %}
+<div class="home-shell">
+  {% if latest %}
+  <section class="lead-story" aria-labelledby="lead-title">
+    <div class="lead-story__copy">
+      <p class="eyebrow">最新文章 · {{ latest.date | date: "%Y.%m.%d" }}</p>
+      <h1 id="lead-title"><a href="{{ latest.url | relative_url }}">{{ latest.title }}</a></h1>
+      <p class="lead-story__summary">{{ latest.description | default: latest.excerpt | strip_html | truncate: 140 }}</p>
+      <a class="text-action" href="{{ latest.url | relative_url }}">打开全文 <span aria-hidden="true">→</span></a>
+    </div>
+    <a class="evidence-window" href="{{ latest.url | relative_url }}#evidence-01" aria-label="查看最新文章的证据 01">
+      <span class="evidence-window__top">
+        <span>证据 01</span>
+        <span>{{ latest.evidence_label | default: "工程路径" }}</span>
+      </span>
+      <span class="evidence-window__flow" aria-hidden="true">
+        {% if latest.evidence_steps %}
+          {% for step in latest.evidence_steps %}
+            <span class="evidence-node">{{ step }}</span>
+            {% unless forloop.last %}<span class="evidence-arrow">→</span>{% endunless %}
+          {% endfor %}
+        {% else %}
+          <span class="evidence-node">问题</span><span class="evidence-arrow">→</span><span class="evidence-node">验证</span><span class="evidence-arrow">→</span><span class="evidence-node">结论</span>
+        {% endif %}
+      </span>
+      <span class="evidence-window__caption">{{ latest.evidence_caption | default: "从可核验的工程细节进入文章" }}</span>
+    </a>
+  </section>
+  {% endif %}
+
+  <section class="article-index" id="articles" aria-labelledby="articles-title">
+    <div class="section-heading">
+      <p class="eyebrow">Archive / 归档</p>
+      <h2 id="articles-title">全部文章</h2>
+      <span>{{ site.posts | size }} 篇</span>
+    </div>
+    <div class="article-list">
+      {% for post in site.posts %}
+      <article class="article-row">
+        <div class="article-row__meta">
+          <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y.%m.%d" }}</time>
+          <span>{{ post.categories | join: " / " }}</span>
+        </div>
+        <div class="article-row__body">
+          <h3><a href="{{ post.url | relative_url }}">{{ post.title }}</a></h3>
+          <p>{{ post.description | default: post.excerpt | strip_html | truncate: 110 }}</p>
+        </div>
+        <a class="article-row__arrow" href="{{ post.url | relative_url }}" aria-label="阅读《{{ post.title }}》">→</a>
+      </article>
+      {% endfor %}
+    </div>
+  </section>
+
+  {% include wechat-follow.html %}
+</div>

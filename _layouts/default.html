@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="{{ page.lang | default: site.lang | default: 'zh-CN' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f3efe6">
+    {%- seo -%}
+    <link rel="alternate" type="application/atom+xml" title="{{ site.title }}" href="{{ '/feed.xml' | relative_url }}">
+    <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+  </head>
+  <body class="page-{{ page.layout | default: 'default' }}">
+    <a class="skip-link" href="#main-content">跳到正文</a>
+    {% include site-header.html %}
+    <main id="main-content">
+      {{ content }}
+    </main>
+    {% include site-footer.html %}
+  </body>
+</html>

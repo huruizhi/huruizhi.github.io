@@ -1,0 +1,23 @@
+---
+layout: default
+---
+<article class="post-shell">
+  <header class="post-header">
+    <a class="back-link" href="{{ '/' | relative_url }}#articles">← 返回文章列表</a>
+    <p class="eyebrow">{{ page.categories | join: " / " }} · {{ page.date | date: "%Y.%m.%d" }}</p>
+    <h1>{{ page.title }}</h1>
+    {% if page.description %}<p class="post-deck">{{ page.description }}</p>{% endif %}
+  </header>
+  <div class="post-content">
+    {{ content }}
+  </div>
+  <footer class="post-end">
+    <p class="eyebrow">End / 读完</p>
+    <p>如果这篇文章对你有帮助，可以继续查看其他工程实践，或关注公众号“睿链未来”。</p>
+    <div class="post-end__actions">
+      <a class="text-action" href="{{ '/' | relative_url }}#articles">查看全部文章 <span aria-hidden="true">→</span></a>
+      <a class="text-action text-action--quiet" href="#wechat">关注公众号 <span aria-hidden="true">↓</span></a>
+    </div>
+  </footer>
+  {% include wechat-follow.html %}
+</article>
