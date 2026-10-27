@@ -1,0 +1,8 @@
+title: "睿智的技术博客"
+description: "关于软件工程、AI 与技术实践的记录"
+lang: zh-CN
+theme: minima
+markdown: kramdown
+permalink: /:categories/:year/:month/:day/:title/
+header_pages:
+  - about.md
