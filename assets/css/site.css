@@ -177,7 +177,7 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .article-row__meta { display: grid; gap: 8px; color: var(--muted); font: 600 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .article-row__meta span { color: var(--accent); }
-.article-row__body h3 { margin: 0 0 8px; font-family: ui-serif, "Songti SC", "STSong", serif; font-size: clamp(23px, 2.3vw, 32px); line-height: 1.35; }
+.article-row__body h3 { margin: 0 0 8px; font-family: ui-serif, "Songti SC", "STSong", serif; font-size: clamp(23px, 2.3vw, 32px); line-height: 1.45; }
 .article-row__body h3 a { text-decoration: none; }
 .article-row__body h3 a:hover { color: var(--accent); }
 .article-row__body p { max-width: 690px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
