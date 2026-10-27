@@ -177,10 +177,10 @@ img { display: block; max-width: 100%; height: auto; }
 }
 .article-row__meta { display: grid; gap: 8px; color: var(--muted); font: 600 12px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .article-row__meta span { color: var(--accent); }
-.article-row__body h3 { margin: 0 0 8px; font-family: ui-serif, "Songti SC", "STSong", serif; font-size: clamp(23px, 2.3vw, 32px); line-height: 1.25; }
+.article-row__body h3 { margin: 0 0 8px; font-family: ui-serif, "Songti SC", "STSong", serif; font-size: clamp(23px, 2.3vw, 32px); line-height: 1.35; }
 .article-row__body h3 a { text-decoration: none; }
 .article-row__body h3 a:hover { color: var(--accent); }
-.article-row__body p { max-width: 790px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
+.article-row__body p { max-width: 690px; margin: 0; color: var(--muted); font-size: 15px; line-height: 1.7; }
 .article-row__arrow { display: grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--ink); text-decoration: none; transition: color var(--ease), background var(--ease), transform var(--ease); }
 .article-row__arrow:hover { color: var(--white); background: var(--ink); transform: translateX(3px); }
 
@@ -195,6 +195,7 @@ img { display: block; max-width: 100%; height: auto; }
   background: var(--ink);
 }
 .wechat-follow h2 { margin: 0 0 18px; font-size: clamp(38px, 5vw, 64px); }
+.wechat-follow .eyebrow { color: #f08c82; }
 .wechat-follow p:last-child { max-width: 570px; margin: 0; color: #d9d3c8; }
 .wechat-follow__code { display: grid; gap: 10px; justify-items: center; }
 .wechat-follow__code img { width: 190px; height: 190px; border: 8px solid var(--white); }
@@ -273,6 +274,12 @@ img { display: block; max-width: 100%; height: auto; }
   .site-brand__name { display: none; }
   .site-nav { gap: 18px; font-size: 13px; }
   .lead-story { min-height: 0; padding-top: 54px; }
+  .lead-story__copy { display: contents; }
+  .lead-story__copy > .eyebrow { order: 1; }
+  .lead-story__copy > h1 { order: 2; }
+  .lead-story__copy > .lead-story__summary { order: 3; }
+  .evidence-window { order: 4; margin: 30px 7px 38px 0; }
+  .lead-story__copy > .text-action { order: 5; justify-self: start; }
   .lead-story h1 { font-size: 43px; }
   .lead-story__summary { margin: 24px 0 28px; font-size: 17px; }
   .evidence-window { min-height: 310px; box-shadow: 7px 7px 0 var(--accent); }
