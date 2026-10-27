@@ -1,0 +1,18 @@
+flowchart TB
+  subgraph Changes["One review-completion commit"]
+    Entry["Transcript entry<br/>Review findings"]
+    Task["Task record<br/>Completed outcome"]
+    Plan["Plan document<br/>Review marked complete"]
+  end
+  Entry --> Store
+  Task --> Store
+  Plan --> Store
+  Store["Storage accepts the whole commit<br/>or rejects it without adopting the changes"]
+  Store -->|Accepted| View["Publish committed state<br/>to clients and the scheduler"]
+
+  classDef records fill:#eaf3ff,stroke:#3978b5,color:#172b40;
+  classDef boundary fill:#f1eef9,stroke:#8470ac,color:#302347;
+  classDef visible fill:#ebf7ef,stroke:#43845c,color:#173723;
+  class Entry,Task,Plan records;
+  class Store boundary;
+  class View visible;

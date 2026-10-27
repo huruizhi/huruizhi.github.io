@@ -1,0 +1,10 @@
+sequenceDiagram
+  participant T as Durable task
+  participant S as Storage
+  participant E as Deployment service
+  T->>S: Commit intent and stable request key
+  T->>E: Request deployment with that key
+  E-->>T: Accepted
+  Note over T: Process dies before outcome commit
+  Note over S: Intent exists, outcome is missing
+  Note over E: Deployment may already be running

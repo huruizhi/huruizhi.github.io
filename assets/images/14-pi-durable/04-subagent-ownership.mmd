@@ -1,0 +1,6 @@
+flowchart TB
+  Main[Main conversation] -->|owns| Generation[Generation task]
+  Generation -->|owns| Delegate[Delegation tool task]
+  Delegate -->|owns| Child[Child conversation]
+  Child -->|owns| Work[Child generation and tool tasks]
+  Work -.->|answer through delegation tool| Main

@@ -1,0 +1,25 @@
+flowchart TB
+  subgraph Stored["1 · Saved together in persistent storage"]
+    History["Transcript entries<br/>Messages, calls, recorded results"]
+    Tasks["Task records<br/>Checkpoints, owners, waits"]
+    Docs["Documents and submissions<br/>App state, live progress, queued inputs"]
+  end
+  History --> Open
+  Tasks --> Open
+  Docs --> Open
+  Open["2 · A new host installs the definitions<br/>and opens the same storage"]
+  Open --> Scheduler["3 · Resume scheduling<br/>Previously running tasks become pending on open"]
+  Scheduler --> Phase["Continue unfinished task phases<br/>from their saved checkpoints"]
+  Scheduler --> Completed["Completed tasks stay completed<br/>Their results remain available"]
+  Phase --> Policy{"Interrupted tool effect?"}
+  Policy -->|Replay-safe| Retry["Rerun the call"]
+  Policy -->|Not replay-safe| Interrupted["Commit an interrupted result<br/>Preserve saved output"]
+
+  classDef stored fill:#eaf3ff,stroke:#3978b5,color:#172b40;
+  classDef runtime fill:#f1eef9,stroke:#8470ac,color:#302347;
+  classDef recovered fill:#ebf7ef,stroke:#43845c,color:#173723;
+  classDef caution fill:#fff3e6,stroke:#b77d38,color:#644015;
+  class History,Tasks,Docs stored;
+  class Open,Scheduler,Policy runtime;
+  class Phase,Completed,Retry recovered;
+  class Interrupted caution;
