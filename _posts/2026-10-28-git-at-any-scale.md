@@ -34,7 +34,7 @@ Git 是一个内容寻址的数据存储。Git 仓库里的所有对象，包括
 问题在于，Git 仓库的实际结构是一张有向无环图，简称 DAG。你可以通过 SHA 查找任意对象，但即使执行仓库中最简单的操作，也必须逐步遍历这张 DAG。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/01-object-store-dag-walk.svg" aria-label="从远程键值存储逐步读取 Git DAG 对象">
-  <source src="/assets/videos/cursor-git-at-any-scale/01-object-store-dag-walk.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/01-object-store-dag-walk.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/01-object-store-dag-walk.svg" alt="从远程键值存储逐步读取 Git DAG 对象">
 </video>
 
@@ -57,7 +57,7 @@ GitHub 早期的系统工程师既务实又精打细算。他们先尝试了最�
 前面已经看到，Git 的图结构会让网络往返变得昂贵得难以承受。不幸的是，磁盘上的底层数据也遵循类似规律。对象在 DAG 中的位置，与它们在 *packfile* 中的排列方式没有关联。生成 packfile 时最重要的启发式目标是尽量减小体积，因此对象会被随机地放在 pack 中并被压缩；更关键的是，它们很少以完整形态存储。大多数对象都基于同一 packfile 中的另一个对象以 delta 形式保存。读取单个对象时，不但要沿着图数据结构进行多次逻辑跳转，还要在磁盘格式中进行多次物理跳转。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/02-packfile-random-access.svg" aria-label="git log 遍历提交 DAG 时对 packfile 范围进行随机读取">
-  <source src="/assets/videos/cursor-git-at-any-scale/02-packfile-random-access.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/02-packfile-random-access.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/02-packfile-random-access.svg" alt="git log 遍历提交 DAG 时对 packfile 范围进行随机读取">
 </video>
 
@@ -82,7 +82,7 @@ Spokes 最初由 GitHub 在 2013 年前后开发，此后逐渐成为行业标�
 Spokes 是一个*基于共识*的分布式系统。它会在不同服务器上保存 Git 仓库的多个副本。每当你推送新数据，协调器就会把这次推送同时分发，也就是“扇出”到仓库的每个实例。这个过程由一种经典共识算法 [3PC（三阶段提交）](https://en.wikipedia.org/wiki/Three-phase_commit_protocol)协调：只有多数节点确认后，推送才会被接受。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/03-three-phase-commit.svg" aria-label="一个协调器与五个参与者执行三阶段提交">
-  <source src="/assets/videos/cursor-git-at-any-scale/03-three-phase-commit.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/03-three-phase-commit.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/03-three-phase-commit.svg" alt="一个协调器与五个参与者执行三阶段提交">
 </video>
 
@@ -91,7 +91,7 @@ Spokes 是一个*基于共识*的分布式系统。它会在不同服务器上�
 这种分离在这里非常有用。指向某个提交的引用更新之前，该提交对外并不可见，用 Git 的术语说就是“不可达”。因此，可以先把 packfile 同时分发到所有主机——这一步不需要同步——再对引用事务执行三阶段提交。引用事务比 packfile 小得多，同步起来也快得多。Git 本身支持预备引用事务：它可以获取引用锁，验证现有值是否符合预期，然后一直持有锁，直到收到提交或中止事务的命令。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/04-spokes-push-fanout.svg" aria-label="packfile 上传和引用事务在副本间通过 3PC 协调">
-  <source src="/assets/videos/cursor-git-at-any-scale/04-spokes-push-fanout.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/04-spokes-push-fanout.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/04-spokes-push-fanout.svg" alt="packfile 上传和引用事务在副本间通过 3PC 协调">
 </video>
 
@@ -118,7 +118,7 @@ Continuity 是 Cursor 开发的 Git 存储系统。它的思路很清楚：吸�
 仓库收到推送时，Continuity 会把它作为 WAL 条目写入 S3。**只有推送已经完整持久化，系统才会返回确认。** 每次推送都保存为独立对象：推送的 packfile 会同时写入磁盘并上传到 S3。不过，上传 WAL 条目并不等于发布它。只有当系统在仓库的本地副本上成功预备引用事务，并在 WAL 索引文件中记录一个指向该条目的指针后，推送才变得可见。WAL 索引本身也是对象存储中的一个对象。**由此，所有推送都具备线性一致性。**
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/05-continuity-wal-push.svg" aria-label="Continuity 将一次推送写入 WAL 并更新索引">
-  <source src="/assets/videos/cursor-git-at-any-scale/05-continuity-wal-push.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/05-continuity-wal-push.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/05-continuity-wal-push.svg" alt="Continuity 将一次推送写入 WAL 并更新索引">
 </video>
 
@@ -133,7 +133,7 @@ Continuity 会尽量避免每次推送只执行一次独立的 S3 写入，因�
 那么共识呢？选举呢？某个仓库的主节点是哪台服务器？同样不重要。这里没有状态，也没有共识。任何服务器都可以成为主节点。对预写日志的所有更新，都通过 S3 上的原子比较并交换操作，也就是 CAS 来同步，所以仓库的任意实例接收推送都是安全的。与路由一样，让任意服务器临时充当主节点并不是最高效的做法，因为它会导致 CAS 重试并拖慢推送。因此，实际运行时总会选择同一台服务器作为主节点，也就是 Rendezvous Hashing 排序列表中的第一台。但在部署、故障转移或短暂网络异常等边缘场景中，究竟哪台服务器是主节点并不重要。系统被设计为：降级时始终正确，健康时始终快速。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/06-s3-cas-race.svg" aria-label="两个前端通过 S3 条件写入竞争更新 WAL 索引">
-  <source src="/assets/videos/cursor-git-at-any-scale/06-s3-cas-race.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/06-s3-cas-race.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/06-s3-cas-race.svg" alt="两个前端通过 S3 条件写入竞争更新 WAL 索引">
 </video>
 
@@ -144,7 +144,7 @@ Continuity 会尽量避免每次推送只执行一次独立的 S3 写入，因�
 看到这里，你可能会想：“UDP 并不是可靠传输，这样做是不是太冒险了？” UDP 当然不可靠。事实上，分布式系统里没有什么绝对可靠：网络链路、路由和拓扑都可能出问题。但这没有关系。每个副本都知道自己上次同步的 WAL 索引版本对应哪个 ETag。在副本上执行读取操作时，系统会携带预期的 ETag 向 S3 发起条件 GET。如果收到不带响应体的 304，说明副本已经是最新状态，可以立即处理 fetch 或 clone。这个操作只涉及 S3 元数据，通常几乎瞬间完成，平均耗时不到 10 毫秒。如果返回 200，响应中就包含最新的 WAL 索引，副本会先据此追上进度，再提供读取服务。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/07-wal-replication.svg" aria-label="UDP gossip 丢失时，副本仍通过 S3 条件读取恢复一致">
-  <source src="/assets/videos/cursor-git-at-any-scale/07-wal-replication.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/07-wal-replication.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/07-wal-replication.svg" alt="UDP gossip 丢失时，副本仍通过 S3 条件读取恢复一致">
 </video>
 
@@ -153,7 +153,7 @@ Continuity 会尽量避免每次推送只执行一次独立的 S3 写入，因�
 这带来两方面影响。第一，因为系统始终一致，在它之上构建基础设施非常简单。我们——包括 Agent、Web 界面和客户端——看到的始终是仓库的全局一致视图。第二，因为系统能够同时向上和向下扩展，每个仓库都可以获得恰到好处的副本数量。大型 monorepo 可以部署到数百个副本，以承载全部 CI 任务流量；Agent 创建的数百万个小型仓库，每个只需一个副本。由于 S3 才是事实来源，并不需要更多副本来确保可用性。事实上，空闲仓库连一个副本都不需要：某个副本长时间没有流量时，系统会从节点磁盘上回收它；下次 fetch 到来时，再从 WAL 物化即可。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/08-elastic-replicas.svg" aria-label="Continuity 根据仓库流量动态调整副本数量">
-  <source src="/assets/videos/cursor-git-at-any-scale/08-elastic-replicas.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/08-elastic-replicas.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/08-elastic-replicas.svg" alt="Continuity 根据仓库流量动态调整副本数量">
 </video>
 
@@ -168,7 +168,7 @@ Continuity 会尽量避免每次推送只执行一次独立的 S3 写入，因�
 Continuity 会摊薄压缩成本。只有主节点执行压缩，压缩结果同时应用于磁盘仓库和 WAL。由于所有副本都跟随 WAL，它们也会跟随压缩事件。副本无需自行重新打包，只需从 S3 下载已经压缩的 pack，以带宽换取 CPU。
 
 <video class="article-animation" autoplay muted loop playsinline controls preload="metadata" poster="/assets/images/cursor-git-at-any-scale/09-wal-compaction.svg" aria-label="增量 WAL 压缩及压缩结果向副本传播">
-  <source src="/assets/videos/cursor-git-at-any-scale/09-wal-compaction.mp4" type="video/mp4">
+  <source src="/assets/videos/cursor-git-at-any-scale/09-wal-compaction.mp4?v=da3928b" type="video/mp4">
   <img src="/assets/images/cursor-git-at-any-scale/09-wal-compaction.svg" alt="增量 WAL 压缩及压缩结果向副本传播">
 </video>
 
