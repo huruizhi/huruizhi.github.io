@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "任意规模的 Git"
-date: 2026-10-28 21:00:00 +0800
+date: 2026-10-28 16:00:00 +0800
 categories: [Git, 架构]
 tags: [Git, Cursor, Continuity, 分布式系统, WAL, S3]
 description: "Cursor Continuity 如何以 S3 中的预写日志为事实来源，同时保留本地 Git 仓库的性能与强一致性。"
