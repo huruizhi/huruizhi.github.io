@@ -2,6 +2,7 @@
 layout: post
 title: "GitLab Git 扩展设计"
 date: 2026-10-29 00:31:55 +0800
+permalink: /gitlab/git/架构/2026/10/29/gitlab-git-scaling-design/
 categories: [GitLab, Git, 架构]
 tags: [GitLab, Gitaly, MVCC, 对象存储, 横向扩展]
 description: "GitLab 提出的 Gitaly 下一代架构：以对象存储为事实来源，用 MVCC 解耦计算与存储，并让 Git 仓库横向扩展。"
