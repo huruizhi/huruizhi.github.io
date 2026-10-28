@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "任意规模的 Git"
+title: "Git 如何扩展到任意规模"
 date: 2026-10-28 16:00:00 +0800
 categories: [Git, 架构]
 tags: [Git, Cursor, Continuity, 分布式系统, WAL, S3]
