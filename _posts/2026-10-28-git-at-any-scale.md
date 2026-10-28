@@ -9,7 +9,7 @@ wechat_source: docs/articles/17-git-at-any-scale.wechat.md
 source_url: "https://cursor.com/blog/git-at-any-scale"
 ---
 
-> 本文经授权翻译转载自 Cursor 博客文章 [Git at any scale](https://cursor.com/blog/git-at-any-scale)。原文作者为 Vicent Martí，发布于 2026 年 8 月 18 日。文中的架构观点、性能数据和 SVG 图示均来自原文；翻译尽量保留原文结构与表述。
+> 本文翻译转载自 Cursor 博客文章 [Git at any scale](https://cursor.com/blog/git-at-any-scale)。原文作者为 Vicent Martí，发布于 2026 年 8 月 18 日。文中的架构观点、性能数据和 SVG 图示均来自原文；翻译尽量保留原文结构与表述。
 
 大规模托管 Git 仓库简直是一场噩梦。Linus Torvalds 设计第一版“来自地狱的信息管理器”时——这确实是 Git 的标语，[可以查证](https://github.com/git/git/commit/e83c5163316)——心里想的是一个非常具体的使用场景：他自己的场景。他想替代当时用于开发 Linux 内核的分布式版本控制系统 BitKeeper。这个替代品当然也必须是分布式的。内核是一个不同寻常的软件项目：它高度去中心化，众多子系统分别由不同的维护者负责。分布式版本控制系统天然适合这样的工作流。
 
