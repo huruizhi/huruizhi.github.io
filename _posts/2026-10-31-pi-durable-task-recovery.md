@@ -7,7 +7,6 @@ categories: [AI, Agent]
 tags: [Pi Durable, Agent Harness, 持久化执行, 任务恢复]
 description: "进程被杀后，Agent 为什么不能简单重跑？本文用一次受控中断实验，拆解 Pi Durable 的 submission、task、entry、document、SQLite 检查点和 Resume 机制，并说明外部副作用的幂等边界。"
 wechat_source: docs/articles/pi-durable-task-recovery.wechat.md
-source_url: "https://github.com/huruizhi/pi-durable-demo/blob/main/docs/pi-durable-blog-evidence.md"
 ---
 
 Agent 进程如果意外被杀，最直接的做法往往是把进程重新拉起来，再把原来的用户输入原封不动地发一遍。这种处理方式在演示环境下通常看不出破绽：模型大概率会再次输出类似的文本，整个程序最终也能返回成功。
@@ -45,38 +44,14 @@ Pi Durable 的设计能够直接回答第一个问题；至于第二个问题，
 这也正是为什么“恢复原来的进程”并不是一种准确的说法。崩溃掉的 Node.js 进程内存和调用栈，绝不可能从 SQLite 数据库里自动复活；实际发生的过程是：新创建的 Harness 进程从数据库中重新加载上一次已经持久化提交的记录，再由调度器依据这些清晰的状态数据，决定下一步应该调度哪个任务继续往下走。
 
 ```mermaid
-flowchart TD
-    subgraph RuntimeLayer["应用运行时 (Node.js 进程)"]
-        Caller["业务调用方 / 命令行入口"]
-        Harness["Harness 运行容器"]
-        Scheduler["任务调度器 (Scheduler)"]
-        Tools["执行环境 (Coding Tools / NodeExecutionEnv)"]
-    end
-
-    subgraph StorageLayer["持久化存储 (SQLite)"]
-        Submissions["submissions 表<br/>(请求宏观生命周期: queued / placed / done)"]
-        Tasks["tasks 表<br/>(细分阶段检查点: pi.generation / pi.tool)"]
-        Entries["entries 表<br/>(交互事实历史: user / assistant / tool-result)"]
-        Docs["documents 表<br/>(会话配置与运行状态: pi.agent / pi.live)"]
-    end
-
-    subgraph ExternalService["外部依赖"]
-        ModelAPI["模型服务 (vLLM / 本地模型推理)"]
-    end
-
-    Caller -->|"1. 提交输入任务 submit(requestId, input)"| Harness
-    Harness --> Scheduler
-    Scheduler -->|"2. 驱动生成任务"| ModelAPI
-    Scheduler -->|"3. 派发工具执行"| Tools
-    Scheduler <-->|"4. 读取断点 / 提交阶段与事实"| StorageLayer
-
-    StorageLayer --- Submissions
-    StorageLayer --- Tasks
-    StorageLayer --- Entries
-    StorageLayer --- Docs
+flowchart LR
+    Caller["调用方<br/>submit(requestId, input)"] --> Harness["Harness + Scheduler"]
+    Harness --> Model["模型服务"]
+    Harness --> Tools["工具执行"]
+    Harness <--> SQLite["SQLite 检查点<br/>submission / task / entry / document"]
 ```
 
-*图 1 架构关系：Harness 作为承载调度的运行时容器，本身并不保留易失状态；真正的任务生命周期、执行阶段检查点、上下文事实与环境配置，均由 SQLite 分表持久化维护，使新进程在启动后能够直接接管已有数据。*
+*图 1：调用方把任务交给 Harness，模型和工具由调度器驱动，恢复所需状态统一落在 SQLite。*
 
 ## 一次请求怎样走到最终回答
 
@@ -148,35 +123,27 @@ entry:      user → assistant(toolCall) → tool-result → assistant(final)
 
 ```mermaid
 sequenceDiagram
-    autonumber
-    actor Caller as 业务调用方
-    participant H1 as 原 Harness (进程 1)
-    participant DB as SQLite 存储
-    participant Tool as 测试工具 (durable_pause)
-    participant H2 as 新 Harness (进程 2)
+    participant H1 as 原 Harness
+    participant DB as SQLite
+    participant Tool as durable_pause 工具
+    participant H2 as 新 Harness
     participant Model as 模型服务
 
-    Caller->>H1: submit(requestId, prompt)
-    H1->>DB: 写入 submission(placed) 与 user entry
-    H1->>Model: 调度 pi.generation 发起推理
-    Model-->>H1: 识别出工具调用需求 (toolCall)
-    H1->>DB: 写入 assistant entry 与 pi.tool task(running)
-    H1->>Tool: 开始执行 durable_pause (20s)
-    Note over H1,Tool: 进程 1 触发 SIGKILL 强行中断<br/>SQLite 停留于 tool: running / sub: placed
-
-    Note over H2,DB: 重启：新进程启动，初始化 Harness 2<br/>检测到未结任务 (RESUME_PENDING: 1)
-    Caller->>H2: harness.resume()
-    H2->>DB: 查询并加载处于 running/placed 的任务
-    H2->>Tool: 重新调度执行 durable_pause
-    Tool-->>H2: 工具执行完毕
-    H2->>DB: 写入 pi.tool-result entry，标记 pi.tool 完成
-    H2->>Model: 调度第二轮 pi.generation (携带最新历史)
-    Model-->>H2: 返回最终回答内容 (stopReason: stop)
-    H2->>DB: 写入 final assistant entry，标记 submission(done)
-    H2-->>Caller: 交付最终执行结果
+    H1->>DB: 提交 submission 与 user entry
+    H1->>Model: 调度 generation
+    Model-->>H1: 返回 tool call
+    H1->>DB: 持久化 tool task(running)
+    H1->>Tool: 执行 20s pause
+    Note over H1,Tool: SIGKILL；SQLite 保留 placed / running 检查点
+    H2->>DB: resume() 读取未完成任务
+    H2->>Tool: 重新执行 durable_pause
+    Tool-->>H2: 返回工具结果
+    H2->>DB: 写入 tool-result，submission(done)
+    H2->>Model: 调度下一轮 generation
+    Model-->>H2: 返回最终回答
 ```
 
-*图 2 执行与恢复时序：进程 1 被强行杀死后，未落盘的内存状态直接丢失，但 SQLite 忠实保存了中断瞬间的任务检查点；新启动的进程 2 通过 resume() 重新拉起调度器，准确定位未完成的 tool 任务并平滑推进至终态。*
+*图 2：旧进程中断后，新 Harness 从 SQLite 检查点重新调度工具并完成同一 submission。*
 
 这组前后对照严密的快照，支撑起了一个经过严格收窄的技术结论：新的 Harness 确实能够从同一份 SQLite 数据库中识别出原本处于 `waiting`、`running` 和 `placed` 的中间状态，并由调度器重新接管未完成的 submission，直到整个流程闭环。整个恢复过程所依赖的基石，始终是已经落盘提交的框架状态机记录，而绝非原进程残留的调用栈或内存变量。
 
@@ -213,49 +180,20 @@ Pi Durable 所实现的 Commit 机制，能够把框架内部的状态变动作�
 
 ```mermaid
 flowchart TD
-    subgraph InterruptPoint["断点恢复判定 (进程重启后接管)"]
-        Crash["进程在工具执行期间意外崩溃"] --> Inspect["新 Harness 读取 SQLite 检查点<br/>(发现 task 仍处于 running，缺少 tool-result entry)"]
-    end
-
-    Inspect --> Judge{"该工具是否具有外部副作用？"}
-
-    subgraph SafePath["纯内部 / 已声明安全重放分支"]
-        Judge -->|"受控测试工具或只读操作<br/>(如 durable_pause 显式声明 replay: safe)"| Replay["调度器直接重新派发执行"]
-        Replay --> CommitDone["写入 tool-result entry 并闭环"]
-    end
-
-    subgraph SideEffectPath["外部副作用边界 (无法天然保证 Exactly-Once)"]
-        Judge -->|"文件写操作 / Shell 命令 / 远端 API 调用 / 资金结算"| Unknown["悬空状态：<br/>外部影响可能已生效，但本地无确认记录"]
-        Unknown --> Strategy{"业务应对策略"}
-        Strategy -->|"外部支持幂等键"| QueryState["携带 Idempotency Key 反查外部状态"]
-        Strategy -->|"业务支持逆向动作"| Compensate["执行预设的补偿逻辑或撤销事务"]
-        Strategy -->|"无法自动化推断"| Manual["挂起置为待确认，交由上层业务或人工审核"]
-        QueryState --> CommitDone
-        Compensate --> CommitDone
-    end
+    Crash["工具执行期间进程崩溃"] --> Inspect["新 Harness 读取 SQLite 检查点"]
+    Inspect --> Judge{"工具是否有外部副作用？"}
+    Judge -->|"无副作用 / replay: safe"| Replay["重新调度工具"]
+    Judge -->|"有副作用"| Strategy["幂等键、状态查询、补偿或人工确认"]
 ```
 
-*图 3 恢复分支与副作用边界：框架层的检查点机制能够确保本地 SQLite 状态完整回溯，但当工具涉及外部系统时，本地断点无法代偿外部网络与业务环境的实际状态，必须结合幂等键、反查与补偿设计以避免重复副作用。*
+*图 3：无副作用的工具可以重放；外部副作用必须先通过业务协议确认状态。*
 
 因此在实际的工程落地中，开发者必须为所有可能产生外部副作用的工具建立严谨的配套协议：例如随请求传递全局唯一的业务幂等键、在本地及时记录远端返回的 operation id、在恢复阶段优先调用查询接口反查执行状态，必要时还要设计专用的去重表、补偿回滚机制乃至人工确认流程。分布式语境下的 exactly-once 必须建立在外部系统与业务协议的紧密配合之上，Pi Durable 本身所提供的框架层持久化，无法也不可能单方面承担这项承诺。
-
-## 把结论分成事实、解释、判断和未知
-
-为了客观审视当前方案的能力边界，我们需要把已验证的事实、机制层面的原理解释、工程上的主观判断以及目前尚未探明的未知边界严格区分开来：
-
-**事实**：当前 demo 环境运行在 `@earendil-works/pi-durable` 1.4.0 与本地 SQLite 之上；系统的 submission、generation task、tool task 以及 entries 均能稳定写入持久化存储；在一次针对 `durable_pause` 工具实施的受控中断实验中，新启动的 Harness 成功完成了未竟任务的恢复，并完整保留了最初的 `request_id`。
-
-**机制解释**：submission 代表单次用户输入的完整生命周期，task 代表可被调度器推进的细分执行阶段，entry 代表不可篡改的模型上下文事实记录，而 document 则用于维系会话与运行时的环境配置。执行 `harness.resume()` 的核心作用是重新激活调度器，让新进程能够依据 SQLite 中已提交的 task 状态继续执行。
-
-**作者判断**：这种将执行状态从易失性内存抽离并持久化的架构，非常适合执行耗时漫长、需要等待人工输入或极易遭遇进程意外重启的 Agent 业务流。它成功地把“程序执行到了哪里”从隐蔽的进程内存中解放出来，转化为了可供审计与追踪的结构化数据；但如果工作流中包含具有外部副作用的写入动作，依然必须在工具协议层面精心设计幂等、状态反查与补偿逻辑。
-
-**未知**：当前的实验材料尚未穷尽所有边界场景——尚未证实使用相同的 `requestId` 在不同阶段重复提交时框架会如何处理；尚未证明 `bash`、`write` 或各类自定义外部工具均可安全重放；尚未针对明确的 `sleeping` 调度阶段完成独立的断点实验；也尚未验证多个并发的 pending submission 是否能够被当前的 demo 恢复逻辑完整接管。此外，针对工具执行失败后的异常流转，仍需补充独立、可供复核的数据库快照来支撑，不能仅靠概括性的文字推断。
 
 Pi Durable 的核心技术价值由此变得清晰而具体：它为 Agent 的任务编排提供了清晰的提交边界、细粒度的检查点以及标准化的恢复调度入口，让新接管的进程能够有据可查地接续未竟的工作。至于一次具体的外部动作是否已经发生、是否可以被安全重做，以及怎样从根本上规避重复调用，这一责任依然牢牢落在工具实现与外部业务系统的肩膀上。真正的系统级可靠恢复，从来不是轻飘飘的“重启之后再问模型一次”，而是一套由框架层持久化检查点、可恢复的任务调度器以及严密的业务幂等协议共同筑牢的工程体系。
 
 资料与证据：
 
-- [Pi Durable 状态恢复 Blog 信息与数据准备稿](https://github.com/huruizhi/pi-durable-demo/blob/main/docs/pi-durable-blog-evidence.md)
 - [Pi Durable v1.4.0 README](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/README.md)
 - [Pi Durable v1.4.0 specification](https://github.com/earendil-works/pi/blob/v1.4.0/packages/durable/docs/spec.md)
 - [Pi Durable v1.4.0 tools source](https://github.com/earendil-works/pi/tree/v1.4.0/packages/durable/src/tools)
