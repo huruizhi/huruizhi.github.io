@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "Pi Durable 如何恢复中断任务：从 Commit、Checkpoint 到 Resume"
-date: 2026-10-31 12:00:00 +0800
+date: 2026-10-31 00:00:00 +0800
 permalink: /ai/agent/2026/10/31/pi-durable-task-recovery/
 categories: [AI, Agent]
 tags: [Pi Durable, Agent Harness, 持久化执行, 任务恢复]
