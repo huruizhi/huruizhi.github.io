@@ -7,6 +7,39 @@
     {%- seo -%}
     <link rel="alternate" type="application/atom+xml" title="{{ site.title }}" href="{{ '/feed.xml' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        var blocks = document.querySelectorAll('pre > code.language-mermaid');
+
+        blocks.forEach(function (code, index) {
+          var container = document.createElement('div');
+          container.className = 'mermaid';
+          if (index === 0) container.id = 'evidence-01';
+          container.setAttribute('role', 'img');
+          container.setAttribute('aria-label', 'Mermaid 图示 ' + (index + 1));
+          container.textContent = code.textContent;
+          code.parentElement.replaceWith(container);
+        });
+
+        if (window.mermaid && blocks.length) {
+          window.mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'strict',
+            theme: 'base',
+            themeVariables: {
+              primaryColor: '#f0d6d0',
+              primaryTextColor: '#171717',
+              primaryBorderColor: '#a92f26',
+              lineColor: '#625d56',
+              secondaryColor: '#e8e0d3',
+              tertiaryColor: '#fffdf8'
+            }
+          });
+          window.mermaid.run({ querySelector: '.mermaid' });
+        }
+      });
+    </script>
   </head>
   <body class="page-{{ page.layout | default: 'default' }}">
     <a class="skip-link" href="#main-content">跳到正文</a>

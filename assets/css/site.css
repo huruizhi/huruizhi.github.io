@@ -224,6 +224,8 @@ img { display: block; max-width: 100%; height: auto; }
 .post-content code { padding: .12em .35em; background: var(--paper-deep); font: .88em/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; }
 .post-content pre { margin: 2em 0; padding: 22px; overflow-x: auto; color: #f9f5ec; background: var(--ink); border-left: 6px solid var(--accent); }
 .post-content pre code { padding: 0; color: inherit; background: transparent; }
+.post-content .mermaid { margin: 2em 0; padding: 18px; overflow-x: auto; border: 1px solid var(--line); background: var(--white); color: var(--ink); }
+.post-content .mermaid svg { display: block; max-width: 100%; height: auto; margin: 0 auto; }
 .post-content img { width: auto; margin: 2.2em auto; }
 .post-content .article-animation { display: block; width: 100%; height: auto; margin: 2.2em auto; border: 1px solid var(--line); background: var(--paper-deep); }
 .post-content hr { margin: 3em 0; border: 0; border-top: 1px solid var(--line); }
