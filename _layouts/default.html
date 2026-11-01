@@ -7,6 +7,20 @@
     {%- seo -%}
     <link rel="alternate" type="application/atom+xml" title="{{ site.title }}" href="{{ '/feed.xml' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+    {%- if page.math -%}
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']],
+          displayMath: [['$$', '$$'], ['\\[', '\\]']]
+        },
+        options: {
+          skipHtmlTags: ['pre', 'code', 'script', 'style', 'textarea']
+        }
+      };
+    </script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    {%- endif -%}
     <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.12.1/dist/mermaid.min.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {

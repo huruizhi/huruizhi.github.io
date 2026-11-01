@@ -6,6 +6,7 @@ permalink: /ai/agent/2026/11/02/agent-memory-mem0-architecture/
 categories: [AI, Agent]
 tags: [Agent Memory, Mem0, 长期记忆, 混合检索]
 description: "Agent 长期记忆不只是向量搜索，而是一条涉及摄取、分层存储、混合重排与上下文注入的数据管线。本文拆解 Mem0 的核心机制与工程边界。"
+math: true
 wechat_source: docs/articles/19-agent-memory-mem0-architecture.wechat.md
 source_url: "https://www.youtube.com/watch?v=aYfZN8t6AQs"
 ---
