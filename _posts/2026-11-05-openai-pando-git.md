@@ -1,7 +1,7 @@
 ---
 layout: post
 title: "OpenAI 的 Pando，怎样让 Git 支撑并行开发？"
-date: 2026-11-05 10:00:00 +0800
+date: 2026-11-05 00:00:00 +0800
 permalink: /git/architecture/2026/11/05/openai-pando-git/
 categories: [Git, 架构]
 tags: [Git, OpenAI, Pando, 分布式系统, packfile]
