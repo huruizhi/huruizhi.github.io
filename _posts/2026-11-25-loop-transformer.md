@@ -3,6 +3,8 @@ layout: post
 title: "从第一性原理理解 Loop Transformer"
 date: 2026-11-25 01:40:00 +0800
 permalink: /ai/architecture/2026/11/25/loop-transformer/
+article_url: /ai/architecture/loop-transformer/
+evidence_anchor: chapter-3
 categories: [AI, architecture]
 tags: [GLM, Transformer, Loop Transformer, DSA, KV Cache]
 description: "同一组 Transformer 层为什么值得再跑一遍？用图解和三个滑块理解 GLM-5.4 的共享权重、有效计算深度与门控渐进更新。"

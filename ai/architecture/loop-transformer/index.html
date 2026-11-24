@@ -57,6 +57,7 @@ main, article, .chapter { min-width: 0; }
 .toc li { margin: 0; break-inside: avoid; }
 .toc a { display: block; padding: .32rem .55rem; color: var(--muted); text-decoration: none; }
 .toc a:hover, .toc a:focus-visible { background: var(--panel); color: var(--blue); }
+.blog-home { display: inline-block; margin-bottom: 1rem; font-size: .9rem; }
 .hero { padding-bottom: .35rem; }
 h1, h2, h3 { line-height: 1.4; text-wrap: pretty; }
 h1 { font-size: clamp(1.9rem, 5vw, 2.55rem); letter-spacing: -.025em; line-height: 1.22; margin: 0 0 1.15rem; text-wrap: balance; }
@@ -169,6 +170,7 @@ figcaption { margin-top: .75rem; }
 <body>
 <div class="layout">
 <main>
+<a class="blog-home" href="https://huruizhi.github.io/"><span aria-hidden="true">←</span> 返回博客首页</a>
 <header class="hero"><h1>从第一性原理理解 Loop Transformer</h1>
 <p>为什么重复运行相同的 Transformer 层，能够让模型获得更强的推理能力？</p>
 <p>我们将重点理解四个问题：</p>
