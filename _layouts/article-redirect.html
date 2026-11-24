@@ -1,0 +1,16 @@
+---
+---
+{% assign target = page.article_url | relative_url %}
+<!doctype html>
+<html lang="{{ site.lang | default: 'zh-CN' | escape }}">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ page.title | escape }}</title>
+  <link rel="canonical" href="{{ page.article_url | absolute_url | escape }}">
+  <meta http-equiv="refresh" content="0; url={{ target | escape }}">
+</head>
+<body>
+  <a href="{{ target | escape }}">打开交互全文</a>
+</body>
+</html>
