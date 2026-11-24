@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="description" content="深色单栏版 DSA 原理讲解，含 Lightning Indexer、Top-K 筛选、稀疏矩阵、计算量交互演示和 Python 示例。">
-<title>DSA（DeepSeek Sparse Attention）原理</title>
+<title>从第一性原理理解DSA</title>
 <style>
 :root {
   color-scheme: dark;
@@ -24,7 +24,8 @@
 body { margin: 0; background: var(--page); color: var(--text); font-size: 1rem; line-height: 1.65; }
 .reading-column { width: min(48rem, calc(100% - 3rem)); margin: 0 auto; padding: 2.75rem 0 3rem; }
 p { margin: 0 0 1.05rem; overflow-wrap: break-word; }
-article > p:first-child { margin-bottom: .9rem; }
+article h1 { margin: 0 0 1.15rem; font-size: clamp(1.9rem, 5vw, 2.55rem); line-height: 1.22; letter-spacing: -.025em; text-wrap: balance; }
+article > p:first-of-type { margin-bottom: .9rem; }
 article > section { margin-top: 1.3rem; scroll-margin-top: 1.25rem; }
 article h2 { font-size: clamp(1.4rem, 4vw, 1.7rem); letter-spacing: -.025em; font-weight: 700; line-height: 1.27; margin: 0 0 .35rem; }
 ul { margin: -.3rem 0 1.05rem; padding-left: 2rem; }
@@ -157,8 +158,9 @@ code .op { color: #f39ecd; }
 </style>
 </head>
 <body>
-<main class="reading-column" aria-label="DSA（DeepSeek Sparse Attention）原理">
+<main class="reading-column" aria-label="从第一性原理理解DSA">
 <article>
+<h1>从第一性原理理解DSA</h1>
 <p>假设你把一个很长的代码仓库交给模型，问它「数据库写入失败后，去哪里改重试次数？」答案可能藏在很早出现的配置文件里。处理到问题末尾时，模型怎样跳过大量无关内容，找到那几处真正有用的位置？</p>
 <p>DSA（DeepSeek Sparse Attention，DeepSeek 稀疏注意力机制）就是为长上下文里的这个问题设计的。它先快速筛选候选位置，再对选中的 Token 执行完整的注意力计算。</p>
 <p>它与之前讨论的 MHA、GQA、MLA 分别优化注意力的不同部分。</p>

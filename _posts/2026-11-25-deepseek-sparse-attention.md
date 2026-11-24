@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "DeepSeek Sparse Attention（DSA）原理与交互演示"
+title: "从第一性原理理解DSA"
 date: 2026-11-25 00:00:00 +0800
 permalink: /ai/architecture/2026/11/25/deepseek-sparse-attention/
 categories: [AI, architecture]
