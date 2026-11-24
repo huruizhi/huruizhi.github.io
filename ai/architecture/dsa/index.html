@@ -1,0 +1,659 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="深色单栏版 DSA 原理讲解，含 Lightning Indexer、Top-K 筛选、稀疏矩阵、计算量交互演示和 Python 示例。">
+<title>DSA（DeepSeek Sparse Attention）原理</title>
+<style>
+:root {
+  color-scheme: dark;
+  --page: #181818;
+  --text: #f1f1f1;
+  --muted: #b8b8b8;
+  --border: #343434;
+  --rule: #282828;
+  --card: #343434;
+  --blue: #5083c4;
+  --teal: #179b85;
+  --teal-text: #51c6b1;
+  --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text); font-size: 1rem; line-height: 1.65; }
+.reading-column { width: min(48rem, calc(100% - 3rem)); margin: 0 auto; padding: 2.75rem 0 3rem; }
+p { margin: 0 0 1.05rem; overflow-wrap: break-word; }
+article > p:first-child { margin-bottom: .9rem; }
+article > section { margin-top: 1.3rem; scroll-margin-top: 1.25rem; }
+article h2 { font-size: clamp(1.4rem, 4vw, 1.7rem); letter-spacing: -.025em; font-weight: 700; line-height: 1.27; margin: 0 0 .35rem; }
+ul { margin: -.3rem 0 1.05rem; padding-left: 2rem; }
+a { color: inherit; text-underline-offset: .2em; text-decoration-color: #999; }
+a:hover { text-decoration-color: currentColor; }
+:focus-visible { outline: 2px solid #86c6ff; outline-offset: 3px; }
+.source { display: inline-block; padding: 0 .48rem; border-radius: 1rem; background: #373737; color: #dfdfdf; font-size: .72rem; text-decoration: none; vertical-align: .09em; line-height: 1.65; }
+.source:hover { background: #4e4e4e; }
+blockquote { margin: 0 0 1rem; padding: 0 0 0 .85rem; border-left: 4px solid #3b3b3b; }
+blockquote p { margin: 0; }
+.table-scroll { overflow: auto; margin: .9rem 0 1.15rem; }
+table { width: 100%; border-collapse: collapse; font-size: .93rem; text-align: left; }
+th, td { padding: .45rem .4rem .45rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td:last-child, th:last-child { padding-right: 0; }
+tbody tr:last-child td { border-bottom: 0; }
+#comparison td:nth-child(2) { min-width: 5.5em; }
+#principle th:nth-child(1) { width: 16%; }
+math { font-family: "STIX Two Math", "Cambria Math", "Latin Modern Math", "DejaVu Math TeX Gyre", math; }
+p:has(> math[display="block"]) { text-align: center; padding: 1.04rem 0; font-size: 1.2rem; margin: .2rem 0 1rem; overflow: auto; }
+.boxed-equation { display: flex; justify-content: center; margin: 1.65rem 0 1.85rem; }
+.boxed-equation math { max-width: 100%; border: 1px solid #efefef; padding: .45rem .35rem; font-size: 1.2rem; }
+figure { margin: 1rem 0 1.1rem; }
+.diagram, .widget { border: 1px solid var(--border); border-radius: .9rem; padding: .75rem; }
+.diagram-box { display: flex; flex-direction: column; justify-content: center; border: 1px solid var(--border); border-radius: .52rem; min-width: 0; padding: .65rem .55rem; text-align: center; }
+.diagram-box.filled { border-color: transparent; background: #151515; }
+.diagram-box.outlined { border-color: var(--teal); }
+.diagram-label, .widget-label { font-weight: 650; }
+.diagram-note, .widget-note, .matrices figcaption { color: var(--muted); font-size: .92rem; line-height: 1.55; }
+.diagram-box .diagram-note { margin-top: .12rem; }
+.flow .filled .diagram-note { color: var(--text); font-size: 1rem; }
+.arrow { color: var(--muted); text-align: center; height: 2rem; line-height: 2rem; }
+.flow-bars, .flow-strip { display: grid; grid-template-columns: repeat(40, minmax(0, 1fr)); gap: clamp(1px, .5vw, 5px); margin: .45rem 1.25rem .85rem; }
+.flow-bars { height: 6.2rem; align-items: end; }
+.flow-bars span { height: var(--height); border-radius: 2px; background: #406899; }
+.flow-strip { height: 3.6rem; margin-top: .9rem; }
+.flow-strip span { border-radius: 2px; background: #303234; }
+.flow-strip .on { background: var(--teal); }
+.diagram-math { margin: .3rem 0 .12rem; font-size: 1.18rem; text-align: center; overflow: auto; }
+.diagram-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+.training .widget-label { margin: 0 0 .65rem; }
+.training .diagram-note { margin-bottom: 0; }
+.training p.diagram-note { margin-top: .6rem; }
+.training-arrow { height: 3.05rem; line-height: 3.05rem; }
+.training-math { margin: 1.3rem 0 1.45rem; }
+.training .widget-rule { background: var(--border); margin: 1.15rem 0; }
+.training-down { text-align: left; padding-left: .15rem; height: 2.4rem; line-height: 2.4rem; }
+.training .diagram-pair .diagram-label { font-weight: 650; }
+.mla .diagram-pair .diagram-label { font-size: 1.6rem; }
+.mla .diagram-pair .diagram-note { margin-top: .4rem; }
+.matrix-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .8rem 1.25rem; }
+.matrix-panel { min-width: 0; }
+.matrix { display: grid; grid-template-columns: repeat(16, minmax(0, 1fr)); gap: clamp(1px, .24vw, 2px); margin: .72rem .42rem .65rem; }
+.matrix span { aspect-ratio: 1; border-radius: 1px; background: #232425; }
+.matrix .on { background: #4c79b1; }
+.matrices figcaption { margin-top: .6rem; }
+.widget { background: var(--card); border-color: #484848; padding: 1rem; }
+.widget-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.widget-heading label, .context-picker label { font-weight: 650; }
+.widget-heading output { color: #c5c5c5; white-space: nowrap; }
+input[type="range"] { appearance: none; width: 100%; height: 1.5rem; border: 0; border-radius: 2rem; display: block; background: #434343; cursor: pointer; margin: .7rem 0 1.95rem; }
+input[type="range"]::-webkit-slider-thumb { appearance: none; width: 1.25rem; height: 1.25rem; border-radius: 50%; border: 1px solid #e7e7e7; background: #fff; }
+input[type="range"]::-moz-range-thumb { width: 1.2rem; height: 1.2rem; border-radius: 50%; border: 1px solid #e7e7e7; background: #fff; }
+.chart { --plot-height: clamp(9rem, 35vw, 15rem); display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: .72rem; margin: 0 .55rem; padding: .7rem 0 1.7rem; }
+.chart-scale { display: flex; flex-direction: column; justify-content: space-between; height: calc(var(--plot-height) + 1.4rem); margin-block: -.7rem; font-size: clamp(.65rem, 2.3vw, 1.15rem); font-weight: 620; line-height: 1.4rem; font-variant-numeric: tabular-nums; }
+.plot { min-width: 0; height: var(--plot-height); display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); position: relative; }
+.grid-lines { pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; position: absolute; inset: 0; }
+.grid-lines i { width: 100%; height: 1px; background: #555; }
+.plot-column { z-index: 1; height: 100%; min-width: 0; position: relative; display: flex; justify-content: center; align-items: end; }
+.score-bar { width: 72%; height: var(--score); border-radius: .25rem .25rem .13rem .13rem; background: #5d656e; transition: background .18s; }
+.plot-column.on .score-bar { background: var(--teal); }
+.token-number { position: absolute; top: calc(100% + .42rem); font-size: clamp(.6rem, 2.3vw, 1.13rem); font-weight: 650; line-height: 1; }
+.axis-title { text-align: center; font-size: 1.35rem; font-weight: 650; margin: .35rem 0 1.35rem; }
+.legend { display: flex; gap: .35rem; flex-wrap: wrap; color: var(--muted); font-size: .92rem; }
+.legend span { display: inline-flex; align-items: center; gap: .4rem; }
+.legend i { width: .63rem; height: .63rem; border-radius: 50%; }
+.legend-selected { background: var(--teal); }
+.legend-skipped { background: #9aa6b4; }
+.widget-rule { height: 1px; background: #494949; margin: 1.15rem 0; }
+.token-chips { display: flex; flex-wrap: wrap; gap: .48rem; padding: 0; margin: .7rem 0 .5rem; list-style: none; }
+.token-chips li { border: 1px solid var(--teal); border-radius: .42rem; text-align: center; padding: .35rem .52rem; font-size: .88rem; }
+.token-chips strong { display: block; color: var(--teal-text); font-variant-numeric: tabular-nums; }
+.metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: .5rem 0 .36rem; }
+.metrics span { display: block; color: var(--muted); font-size: .93rem; }
+.metrics strong { display: block; color: #fff; font-weight: 650; font-size: clamp(1.65rem, 6vw, 2.25rem); line-height: 1.25; margin-top: .2rem; font-variant-numeric: tabular-nums; }
+.metrics strong.accent { color: var(--teal-text); }
+.widget-note { margin-top: .6rem; }
+.context-picker { display: flex; align-items: center; gap: 1.05rem; margin-bottom: .78rem; }
+.context-picker label { flex: 0 0 auto; }
+select { appearance: none; min-width: 0; flex: 1; height: 2.5rem; color: var(--text); background: #353535 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='12' width='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' fill='none' stroke='%23b8b8b8' stroke-width='1.5'/%3E%3C/svg%3E") right .9rem center / .7rem no-repeat; border: 1px solid #666; padding: 0 2.1rem 0 1rem; border-radius: 2rem; font: inherit; font-size: .94rem; cursor: pointer; }
+.comparison-row { margin: .72rem 0; }
+.comparison-row > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; margin-bottom: .25rem; }
+.comparison-row strong { font-variant-numeric: tabular-nums; }
+.compare-track { height: 1.55rem; border-radius: .42rem; overflow: hidden; background: #272727; }
+.compare-track span { height: 100%; display: block; border-radius: .42rem; }
+.full-track { background: var(--blue); width: 100%; }
+#sparse-track { background: var(--teal); transition: width .25s; }
+.code-card { background: #3b3b3b; border: 1px solid #4a4a4a; border-radius: 1.1rem; margin: 1.6rem 0 1.6rem; overflow: hidden; }
+.code-card figcaption { display: flex; justify-content: space-between; align-items: center; padding: .6rem 1.2rem; border-bottom: 1px solid #4a4a4a; font-size: .93rem; }
+.code-card button { color: var(--text); background: transparent; border: 1px solid #6d6d6d; border-radius: 9px; padding: .18rem .55rem; font: inherit; font-size: .82rem; cursor: pointer; }
+.code-card button:hover { background: #484848; }
+.code-card div.sourceCode { overflow: auto; max-height: 25rem; margin: 0; }
+.code-card pre { margin: 0; padding: .7rem 1.2rem .9rem; white-space: pre; }
+.code-card code { font-family: var(--mono); font-size: .86rem; line-height: 1.5; }
+code a { text-decoration: none; }
+code .co { color: #bcbcbc; }
+code .kw, code .cf, code .va, code .bu { color: #d0a7ff; }
+code .st, code .ss { color: #94dca9; }
+code .dv, code .fl { color: #ffb28a; }
+code .op { color: #f39ecd; }
+.screen-reader { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 540px) {
+  .reading-column { width: calc(100% - 2rem); padding-top: 1.5rem; }
+  .widget, .diagram { padding: .7rem; }
+  .chart { margin: 0; column-gap: .38rem; }
+  .flow-bars, .flow-strip { margin-inline: .2rem; }
+  .matrix-grid { gap: .75rem; }
+  .matrix { margin-inline: 0; }
+  .axis-title { font-size: 1.13rem; }
+  td, th { padding-right: .68rem; }
+}
+@media (max-width: 370px) {
+  .matrix-grid { grid-template-columns: 1fr; }
+  .matrix { max-width: 20rem; }
+  .widget-heading { flex-wrap: wrap; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: 0s !important; }
+}
+
+</style>
+</head>
+<body>
+<main class="reading-column" aria-label="DSA（DeepSeek Sparse Attention）原理">
+<article>
+<p>假设你把一个很长的代码仓库交给模型，问它「数据库写入失败后，去哪里改重试次数？」答案可能藏在很早出现的配置文件里。处理到问题末尾时，模型怎样跳过大量无关内容，找到那几处真正有用的位置？</p>
+<p>DSA（DeepSeek Sparse Attention，DeepSeek 稀疏注意力机制）就是为长上下文里的这个问题设计的。它先快速筛选候选位置，再对选中的 Token 执行完整的注意力计算。</p>
+<p>它与之前讨论的 MHA、GQA、MLA 分别优化注意力的不同部分。</p>
+<ul>
+<li>MHA：每个注意力头独立计算 QKV。</li>
+<li>GQA：多个 Query Head 共享 KV Head。</li>
+<li>MLA：通过低秩压缩减少 KV Cache。</li>
+<li><strong>DSA：让每个 Query 只选择最相关的一部分历史 Token 进行完整的注意力计算。</strong></li>
+</ul>
+<p>GQA 和 MLA 主要优化信息的存储与访问，而 DSA 主要优化参与 Attention 的 Token 数量。</p>
+<section id="problem" class="level2">
+<h2>1. DSA 要解决什么问题？</h2>
+<p>假设模型拥有 100 万 Token 的上下文。</p>
+<p>传统 Full Attention 在生成下一个 Token 时，当前 Query 需要与全部历史 Key 进行匹配。</p>
+<p>但是，当前 Token 真的需要关注全部 100 万个 Token 吗？</p>
+<p>DSA 的核心思想是：先通过一个低成本的索引机制筛选出最相关的历史 Token，再执行高精度的 Attention 计算。</p>
+</section>
+<section id="flow" class="level2">
+<h2>2. DSA 的完整计算流程</h2>
+<p>DSA 最早在 DeepSeek-V3.2-Exp 中引入，在 DeepSeek-V3.2 中正式使用，主要包含两个核心组件：</p>
+<ul>
+<li>Lightning Indexer（闪电索引器）。</li>
+<li>Fine-grained Token Selection（细粒度 Token 选择机制）。</li>
+</ul>
+<p>DeepSeek-V3.2 在 MLA 的基础上实现 DSA，设定 Top-K 为 2048。 <a class="source" href="https://arxiv.org/html/2512.02556v1#S2">DeepSeek-V3.2</a></p>
+<figure class="diagram flow" aria-label="DSA 完整流程示意">
+  <div class="diagram-box filled"><span class="diagram-label">输入 Hidden States</span><span class="diagram-note">[B, T, d_model]</span></div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-box">
+    <span class="diagram-label">Lightning Indexer</span>
+    <span class="diagram-note">低成本计算当前 Query 与所有历史 Token 的相关分数</span>
+    <div class="flow-bars" aria-hidden="true"><span style="--height:12%"></span><span style="--height:48%"></span><span style="--height:84%"></span><span style="--height:41%"></span><span style="--height:77%"></span><span style="--height:35%"></span><span style="--height:71%"></span><span style="--height:29%"></span><span style="--height:65%"></span><span style="--height:22%"></span><span style="--height:58%"></span><span style="--height:16%"></span><span style="--height:52%"></span><span style="--height:88%"></span><span style="--height:46%"></span><span style="--height:82%"></span><span style="--height:39%"></span><span style="--height:75%"></span><span style="--height:33%"></span><span style="--height:69%"></span><span style="--height:26%"></span><span style="--height:63%"></span><span style="--height:20%"></span><span style="--height:56%"></span><span style="--height:14%"></span><span style="--height:50%"></span><span style="--height:86%"></span><span style="--height:43%"></span><span style="--height:79%"></span><span style="--height:37%"></span><span style="--height:73%"></span><span style="--height:31%"></span><span style="--height:67%"></span><span style="--height:24%"></span><span style="--height:60%"></span><span style="--height:18%"></span><span style="--height:54%"></span><span style="--height:12%"></span><span style="--height:48%"></span><span style="--height:84%"></span></div>
+    <span class="diagram-note">全部历史 Token 的索引分数</span>
+  </div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-box">
+    <span class="diagram-label">Top-K Selection</span>
+    <div class="flow-strip" aria-hidden="true"><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span><span class="on"></span><span class=""></span><span class=""></span><span class=""></span></div>
+    <span class="diagram-note">选择相关性最高的 2048 个 Token</span>
+  </div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-box outlined">
+    <span class="diagram-label">Sparse MLA Attention</span>
+    <div class="diagram-math"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo>Softmax</mo><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><mfrac><mrow><mi>Q</mi><msubsup><mi>K</mi><mrow><mi>s</mi><mi>e</mi><mi>l</mi><mi>e</mi><mi>c</mi><mi>t</mi><mi>e</mi><mi>d</mi></mrow><mi>T</mi></msubsup></mrow><msqrt><msub><mi>d</mi><mi>k</mi></msub></msqrt></mfrac><mo stretchy="true" form="postfix">)</mo></mrow><msub><mi>V</mi><mrow><mi>s</mi><mi>e</mi><mi>l</mi><mi>e</mi><mi>c</mi><mi>t</mi><mi>e</mi><mi>d</mi></mrow></msub></mrow><annotation encoding="application/x-tex">\operatorname{Softmax}\!\left(\frac{QK^T_{selected}}{\sqrt{d_k}}\right)V_{selected}</annotation></semantics></math></div>
+    <span class="diagram-note">仅对选中的 KV 执行正式注意力计算</span>
+  </div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-box filled"><span class="diagram-label">输出 Hidden States</span><span class="diagram-note">[B, T, d_model]</span></div>
+</figure>
+</section>
+<section id="indexer" class="level2">
+<h2>3. Lightning Indexer 是如何计算的？</h2>
+<p>这里非常值得研究，因为它实际上又构建了一套轻量级的 QK 计算机制。</p>
+<p>之前我们讨论过传统 Attention：</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>Q</mi><mo>=</mo><mi>X</mi><msub><mi>W</mi><mi>Q</mi></msub><mo>,</mo><mspace width="1.0em"></mspace><mi>K</mi><mo>=</mo><mi>X</mi><msub><mi>W</mi><mi>K</mi></msub><mo>,</mo><mspace width="1.0em"></mspace><mi>V</mi><mo>=</mo><mi>X</mi><msub><mi>W</mi><mi>V</mi></msub></mrow><annotation encoding="application/x-tex">Q=XW_Q,\quad K=XW_K,\quad V=XW_V</annotation></semantics></math></p>
+<p>DSA 则额外引入索引器使用的 Q、K 和权重：</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>Q</mi><mi>I</mi></msup><mo>=</mo><mi>X</mi><msubsup><mi>W</mi><mi>Q</mi><mi>I</mi></msubsup></mrow><annotation encoding="application/x-tex">Q^I=XW_Q^I</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>K</mi><mi>I</mi></msup><mo>=</mo><mi>X</mi><msubsup><mi>W</mi><mi>K</mi><mi>I</mi></msubsup></mrow><annotation encoding="application/x-tex">K^I=XW_K^I</annotation></semantics></math></p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msup><mi>w</mi><mi>I</mi></msup><mo>=</mo><mi>X</mi><msubsup><mi>W</mi><mi>w</mi><mi>I</mi></msubsup></mrow><annotation encoding="application/x-tex">w^I=XW_w^I</annotation></semantics></math></p>
+<p>这里是简化表示，实际 DeepSeek 实现中的 Indexer Query 使用 MLA 的低秩 Query 表示进行投影。</p>
+<p>DeepSeek-V3.2 的 Indexer 配置为：</p>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">参数</th>
+<th style="text-align: right;">数值</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Index Query Heads</td>
+<td style="text-align: right;">64</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Index Key Heads</td>
+<td style="text-align: right;">1</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Index Head Dimension</td>
+<td style="text-align: right;">128</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Index Top-K</td>
+<td style="text-align: right;">2048</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">参考实现计算精度</td>
+<td style="text-align: right;">FP8</td>
+</tr>
+</tbody>
+</table></div>
+<p><a class="source" href="https://huggingface.co/deepseek-ai/DeepSeek-V3.2/blob/main/config.json">Hugging Face</a></p>
+<p>Indexer 的核心公式：</p>
+<div class="boxed-equation"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>I</mi><mrow><mi>t</mi><mo>,</mo><mi>s</mi></mrow></msub><mo>=</mo><munderover><mo>∑</mo><mrow><mi>j</mi><mo>=</mo><mn>1</mn></mrow><msup><mi>H</mi><mi>I</mi></msup></munderover><msubsup><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow><mi>I</mi></msubsup><mo>⋅</mo><mo>ReLU</mo><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msubsup><mi>q</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow><mi>I</mi></msubsup><mo>⋅</mo><msubsup><mi>k</mi><mi>s</mi><mi>I</mi></msubsup><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">I_{t,s}=\sum_{j=1}^{H^I}w^I_{t,j}\cdot\operatorname{ReLU}\!\left(q^I_{t,j}\cdot k^I_s\right)</annotation></semantics></math></div>
+<p>其中：</p>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">符号</th>
+<th style="text-align: left;">含义</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">t</td>
+<td style="text-align: left;">当前 Query Token 的位置</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">s</td>
+<td style="text-align: left;">历史 Token 的位置</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">j</td>
+<td style="text-align: left;">Indexer Head 编号</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>q</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow><mi>I</mi></msubsup><annotation encoding="application/x-tex">q^I_{t,j}</annotation></semantics></math></td>
+<td style="text-align: left;">当前 Token 的索引 Query</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>k</mi><mi>s</mi><mi>I</mi></msubsup><annotation encoding="application/x-tex">k^I_s</annotation></semantics></math></td>
+<td style="text-align: left;">历史 Token 的索引 Key</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msubsup><mi>w</mi><mrow><mi>t</mi><mo>,</mo><mi>j</mi></mrow><mi>I</mi></msubsup><annotation encoding="application/x-tex">w^I_{t,j}</annotation></semantics></math></td>
+<td style="text-align: left;">当前 Token 对该索引头的权重</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;"><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>I</mi><mrow><mi>t</mi><mo>,</mo><mi>s</mi></mrow></msub><annotation encoding="application/x-tex">I_{t,s}</annotation></semantics></math></td>
+<td style="text-align: left;">最终索引分数</td>
+</tr>
+</tbody>
+</table></div>
+<p>注意，这里使用的是 ReLU，而不是 Softmax，而且没有计算 V。</p>
+<p>它的目的不是聚合信息，而是判断哪些 Token 值得进入下一阶段的 Attention。</p>
+</section>
+<section id="selection" class="level2">
+<h2>4. 通过一个例子理解 Token 筛选</h2>
+<p>假设历史上下文包含 20 个 Token，当前 Query 需要从中选择最相关的 Token。</p>
+<p>你可以调整下面的 Top-K 数量，观察 DSA 如何进行筛选。</p>
+<figure class="widget simulator" aria-labelledby="simulator-title">
+  <div class="widget-heading">
+    <label for="top-k" id="simulator-title">Lightning Indexer 模拟</label>
+    <output id="k-value" for="top-k">Top-K = 5</output>
+  </div>
+  <input type="range" id="top-k" min="1" max="20" step="1" value="5" aria-label="Top-K 数量">
+  <div class="chart" role="img" aria-label="20 个 Token 的索引分数柱状图。选中位置 4、7、10、15、18。">
+    <div class="chart-scale" aria-hidden="true"><span>1.00</span><span>0.75</span><span>0.50</span><span>0.25</span><span>0.00</span></div>
+    <div class="plot" aria-hidden="true"><div class="grid-lines"><i></i><i></i><i></i><i></i><i></i></div><div class="plot-column " data-score="0.12"><span class="score-bar" style="--score:12%" title="Token 1 · 0.12"></span><span class="token-number">1</span></div><div class="plot-column " data-score="0.45"><span class="score-bar" style="--score:45%" title="Token 2 · 0.45"></span><span class="token-number">2</span></div><div class="plot-column " data-score="0.08"><span class="score-bar" style="--score:8%" title="Token 3 · 0.08"></span><span class="token-number">3</span></div><div class="plot-column on" data-score="0.92"><span class="score-bar" style="--score:92%" title="Token 4 · 0.92"></span><span class="token-number">4</span></div><div class="plot-column " data-score="0.23"><span class="score-bar" style="--score:23%" title="Token 5 · 0.23"></span><span class="token-number">5</span></div><div class="plot-column " data-score="0.18"><span class="score-bar" style="--score:18%" title="Token 6 · 0.18"></span><span class="token-number">6</span></div><div class="plot-column on" data-score="0.72"><span class="score-bar" style="--score:72%" title="Token 7 · 0.72"></span><span class="token-number">7</span></div><div class="plot-column " data-score="0.36"><span class="score-bar" style="--score:36%" title="Token 8 · 0.36"></span><span class="token-number">8</span></div><div class="plot-column " data-score="0.11"><span class="score-bar" style="--score:11%" title="Token 9 · 0.11"></span><span class="token-number">9</span></div><div class="plot-column on" data-score="0.85"><span class="score-bar" style="--score:85%" title="Token 10 · 0.85"></span><span class="token-number">10</span></div><div class="plot-column " data-score="0.42"><span class="score-bar" style="--score:42%" title="Token 11 · 0.42"></span><span class="token-number">11</span></div><div class="plot-column " data-score="0.65"><span class="score-bar" style="--score:65%" title="Token 12 · 0.65"></span><span class="token-number">12</span></div><div class="plot-column " data-score="0.04"><span class="score-bar" style="--score:4%" title="Token 13 · 0.04"></span><span class="token-number">13</span></div><div class="plot-column " data-score="0.19"><span class="score-bar" style="--score:19%" title="Token 14 · 0.19"></span><span class="token-number">14</span></div><div class="plot-column on" data-score="0.96"><span class="score-bar" style="--score:96%" title="Token 15 · 0.96"></span><span class="token-number">15</span></div><div class="plot-column " data-score="0.33"><span class="score-bar" style="--score:33%" title="Token 16 · 0.33"></span><span class="token-number">16</span></div><div class="plot-column " data-score="0.54"><span class="score-bar" style="--score:54%" title="Token 17 · 0.54"></span><span class="token-number">17</span></div><div class="plot-column on" data-score="0.78"><span class="score-bar" style="--score:78%" title="Token 18 · 0.78"></span><span class="token-number">18</span></div><div class="plot-column " data-score="0.28"><span class="score-bar" style="--score:28%" title="Token 19 · 0.28"></span><span class="token-number">19</span></div><div class="plot-column " data-score="0.61"><span class="score-bar" style="--score:61%" title="Token 20 · 0.61"></span><span class="token-number">20</span></div></div>
+  </div>
+  <div class="axis-title">Token 位置</div>
+  <div class="legend"><span><i class="legend-selected"></i>选中的 Token</span><span><i class="legend-skipped"></i>跳过的 Token</span></div>
+  <div class="widget-rule"></div>
+  <div class="widget-label" id="chosen-title">进入正式 Attention 的 Token</div>
+  <ol class="token-chips" id="chosen-tokens" aria-labelledby="chosen-title"><li>Token 4<strong>0.92</strong></li><li>Token 7<strong>0.72</strong></li><li>Token 10<strong>0.85</strong></li><li>Token 15<strong>0.96</strong></li><li>Token 18<strong>0.78</strong></li></ol>
+  <div class="metrics">
+    <div><span>传统 Attention 匹配数量</span><strong>20</strong></div>
+    <div><span>DSA 主注意力匹配数量</span><strong class="accent" id="dsa-count">5</strong></div>
+  </div>
+  <figcaption class="widget-note">示意分数。实际索引器的分数由模型学习得到，不一定处于 0～1 之间。</figcaption>
+</figure>
+<p>这里最关键的一点是：<strong>DSA 选中的 Token 不必是连续的。</strong></p>
+<p>它可以同时关注第 10 个 Token、第 1000 个 Token 和第 100000 个 Token。这与 Sliding Window Attention 有本质区别。</p>
+</section>
+<section id="matrix" class="level2">
+<h2>5. DSA 与传统 Attention 的矩阵区别</h2>
+<p>假设 T = 16，Top-K = 4。</p>
+<figure class="diagram matrices" aria-label="16 个 Token 的因果注意力矩阵对比"><div class="matrix-grid"><div class="matrix-panel"><span class="widget-label">Full Attention</span><div class="matrix" aria-hidden="true"><span class="on" title="Query 1 读取位置 1"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 2 读取位置 1"></span><span class="on" title="Query 2 读取位置 2"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 3 读取位置 1"></span><span class="on" title="Query 3 读取位置 2"></span><span class="on" title="Query 3 读取位置 3"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 4 读取位置 1"></span><span class="on" title="Query 4 读取位置 2"></span><span class="on" title="Query 4 读取位置 3"></span><span class="on" title="Query 4 读取位置 4"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 5 读取位置 1"></span><span class="on" title="Query 5 读取位置 2"></span><span class="on" title="Query 5 读取位置 3"></span><span class="on" title="Query 5 读取位置 4"></span><span class="on" title="Query 5 读取位置 5"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 6 读取位置 1"></span><span class="on" title="Query 6 读取位置 2"></span><span class="on" title="Query 6 读取位置 3"></span><span class="on" title="Query 6 读取位置 4"></span><span class="on" title="Query 6 读取位置 5"></span><span class="on" title="Query 6 读取位置 6"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 7 读取位置 1"></span><span class="on" title="Query 7 读取位置 2"></span><span class="on" title="Query 7 读取位置 3"></span><span class="on" title="Query 7 读取位置 4"></span><span class="on" title="Query 7 读取位置 5"></span><span class="on" title="Query 7 读取位置 6"></span><span class="on" title="Query 7 读取位置 7"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 8 读取位置 1"></span><span class="on" title="Query 8 读取位置 2"></span><span class="on" title="Query 8 读取位置 3"></span><span class="on" title="Query 8 读取位置 4"></span><span class="on" title="Query 8 读取位置 5"></span><span class="on" title="Query 8 读取位置 6"></span><span class="on" title="Query 8 读取位置 7"></span><span class="on" title="Query 8 读取位置 8"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 9 读取位置 1"></span><span class="on" title="Query 9 读取位置 2"></span><span class="on" title="Query 9 读取位置 3"></span><span class="on" title="Query 9 读取位置 4"></span><span class="on" title="Query 9 读取位置 5"></span><span class="on" title="Query 9 读取位置 6"></span><span class="on" title="Query 9 读取位置 7"></span><span class="on" title="Query 9 读取位置 8"></span><span class="on" title="Query 9 读取位置 9"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 10 读取位置 1"></span><span class="on" title="Query 10 读取位置 2"></span><span class="on" title="Query 10 读取位置 3"></span><span class="on" title="Query 10 读取位置 4"></span><span class="on" title="Query 10 读取位置 5"></span><span class="on" title="Query 10 读取位置 6"></span><span class="on" title="Query 10 读取位置 7"></span><span class="on" title="Query 10 读取位置 8"></span><span class="on" title="Query 10 读取位置 9"></span><span class="on" title="Query 10 读取位置 10"></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 11 读取位置 1"></span><span class="on" title="Query 11 读取位置 2"></span><span class="on" title="Query 11 读取位置 3"></span><span class="on" title="Query 11 读取位置 4"></span><span class="on" title="Query 11 读取位置 5"></span><span class="on" title="Query 11 读取位置 6"></span><span class="on" title="Query 11 读取位置 7"></span><span class="on" title="Query 11 读取位置 8"></span><span class="on" title="Query 11 读取位置 9"></span><span class="on" title="Query 11 读取位置 10"></span><span class="on" title="Query 11 读取位置 11"></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 12 读取位置 1"></span><span class="on" title="Query 12 读取位置 2"></span><span class="on" title="Query 12 读取位置 3"></span><span class="on" title="Query 12 读取位置 4"></span><span class="on" title="Query 12 读取位置 5"></span><span class="on" title="Query 12 读取位置 6"></span><span class="on" title="Query 12 读取位置 7"></span><span class="on" title="Query 12 读取位置 8"></span><span class="on" title="Query 12 读取位置 9"></span><span class="on" title="Query 12 读取位置 10"></span><span class="on" title="Query 12 读取位置 11"></span><span class="on" title="Query 12 读取位置 12"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 1"></span><span class="on" title="Query 13 读取位置 2"></span><span class="on" title="Query 13 读取位置 3"></span><span class="on" title="Query 13 读取位置 4"></span><span class="on" title="Query 13 读取位置 5"></span><span class="on" title="Query 13 读取位置 6"></span><span class="on" title="Query 13 读取位置 7"></span><span class="on" title="Query 13 读取位置 8"></span><span class="on" title="Query 13 读取位置 9"></span><span class="on" title="Query 13 读取位置 10"></span><span class="on" title="Query 13 读取位置 11"></span><span class="on" title="Query 13 读取位置 12"></span><span class="on" title="Query 13 读取位置 13"></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 1"></span><span class="on" title="Query 14 读取位置 2"></span><span class="on" title="Query 14 读取位置 3"></span><span class="on" title="Query 14 读取位置 4"></span><span class="on" title="Query 14 读取位置 5"></span><span class="on" title="Query 14 读取位置 6"></span><span class="on" title="Query 14 读取位置 7"></span><span class="on" title="Query 14 读取位置 8"></span><span class="on" title="Query 14 读取位置 9"></span><span class="on" title="Query 14 读取位置 10"></span><span class="on" title="Query 14 读取位置 11"></span><span class="on" title="Query 14 读取位置 12"></span><span class="on" title="Query 14 读取位置 13"></span><span class="on" title="Query 14 读取位置 14"></span><span></span><span></span><span class="on" title="Query 15 读取位置 1"></span><span class="on" title="Query 15 读取位置 2"></span><span class="on" title="Query 15 读取位置 3"></span><span class="on" title="Query 15 读取位置 4"></span><span class="on" title="Query 15 读取位置 5"></span><span class="on" title="Query 15 读取位置 6"></span><span class="on" title="Query 15 读取位置 7"></span><span class="on" title="Query 15 读取位置 8"></span><span class="on" title="Query 15 读取位置 9"></span><span class="on" title="Query 15 读取位置 10"></span><span class="on" title="Query 15 读取位置 11"></span><span class="on" title="Query 15 读取位置 12"></span><span class="on" title="Query 15 读取位置 13"></span><span class="on" title="Query 15 读取位置 14"></span><span class="on" title="Query 15 读取位置 15"></span><span></span><span class="on" title="Query 16 读取位置 1"></span><span class="on" title="Query 16 读取位置 2"></span><span class="on" title="Query 16 读取位置 3"></span><span class="on" title="Query 16 读取位置 4"></span><span class="on" title="Query 16 读取位置 5"></span><span class="on" title="Query 16 读取位置 6"></span><span class="on" title="Query 16 读取位置 7"></span><span class="on" title="Query 16 读取位置 8"></span><span class="on" title="Query 16 读取位置 9"></span><span class="on" title="Query 16 读取位置 10"></span><span class="on" title="Query 16 读取位置 11"></span><span class="on" title="Query 16 读取位置 12"></span><span class="on" title="Query 16 读取位置 13"></span><span class="on" title="Query 16 读取位置 14"></span><span class="on" title="Query 16 读取位置 15"></span><span class="on" title="Query 16 读取位置 16"></span></div><span class="diagram-note">每个 Token 关注所有历史位置</span></div><div class="matrix-panel"><span class="widget-label">Sliding Window</span><div class="matrix" aria-hidden="true"><span class="on" title="Query 1 读取位置 1"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 2 读取位置 1"></span><span class="on" title="Query 2 读取位置 2"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 3 读取位置 1"></span><span class="on" title="Query 3 读取位置 2"></span><span class="on" title="Query 3 读取位置 3"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 4 读取位置 1"></span><span class="on" title="Query 4 读取位置 2"></span><span class="on" title="Query 4 读取位置 3"></span><span class="on" title="Query 4 读取位置 4"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 5 读取位置 2"></span><span class="on" title="Query 5 读取位置 3"></span><span class="on" title="Query 5 读取位置 4"></span><span class="on" title="Query 5 读取位置 5"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 6 读取位置 3"></span><span class="on" title="Query 6 读取位置 4"></span><span class="on" title="Query 6 读取位置 5"></span><span class="on" title="Query 6 读取位置 6"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 7 读取位置 4"></span><span class="on" title="Query 7 读取位置 5"></span><span class="on" title="Query 7 读取位置 6"></span><span class="on" title="Query 7 读取位置 7"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 8 读取位置 5"></span><span class="on" title="Query 8 读取位置 6"></span><span class="on" title="Query 8 读取位置 7"></span><span class="on" title="Query 8 读取位置 8"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 9 读取位置 6"></span><span class="on" title="Query 9 读取位置 7"></span><span class="on" title="Query 9 读取位置 8"></span><span class="on" title="Query 9 读取位置 9"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 10 读取位置 7"></span><span class="on" title="Query 10 读取位置 8"></span><span class="on" title="Query 10 读取位置 9"></span><span class="on" title="Query 10 读取位置 10"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 11 读取位置 8"></span><span class="on" title="Query 11 读取位置 9"></span><span class="on" title="Query 11 读取位置 10"></span><span class="on" title="Query 11 读取位置 11"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 12 读取位置 9"></span><span class="on" title="Query 12 读取位置 10"></span><span class="on" title="Query 12 读取位置 11"></span><span class="on" title="Query 12 读取位置 12"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 10"></span><span class="on" title="Query 13 读取位置 11"></span><span class="on" title="Query 13 读取位置 12"></span><span class="on" title="Query 13 读取位置 13"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 11"></span><span class="on" title="Query 14 读取位置 12"></span><span class="on" title="Query 14 读取位置 13"></span><span class="on" title="Query 14 读取位置 14"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 15 读取位置 12"></span><span class="on" title="Query 15 读取位置 13"></span><span class="on" title="Query 15 读取位置 14"></span><span class="on" title="Query 15 读取位置 15"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 16 读取位置 13"></span><span class="on" title="Query 16 读取位置 14"></span><span class="on" title="Query 16 读取位置 15"></span><span class="on" title="Query 16 读取位置 16"></span></div><span class="diagram-note">只关注最近的 4 个位置</span></div><div class="matrix-panel"><span class="widget-label">DSA</span><div class="matrix" aria-hidden="true"><span class="on" title="Query 1 读取位置 1"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 2 读取位置 1"></span><span class="on" title="Query 2 读取位置 2"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 3 读取位置 1"></span><span class="on" title="Query 3 读取位置 2"></span><span class="on" title="Query 3 读取位置 3"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 4 读取位置 1"></span><span class="on" title="Query 4 读取位置 2"></span><span class="on" title="Query 4 读取位置 3"></span><span class="on" title="Query 4 读取位置 4"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 5 读取位置 1"></span><span class="on" title="Query 5 读取位置 2"></span><span class="on" title="Query 5 读取位置 3"></span><span></span><span class="on" title="Query 5 读取位置 5"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 6 读取位置 1"></span><span class="on" title="Query 6 读取位置 2"></span><span></span><span class="on" title="Query 6 读取位置 4"></span><span></span><span class="on" title="Query 6 读取位置 6"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 7 读取位置 1"></span><span></span><span class="on" title="Query 7 读取位置 3"></span><span></span><span class="on" title="Query 7 读取位置 5"></span><span></span><span class="on" title="Query 7 读取位置 7"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 8 读取位置 1"></span><span></span><span class="on" title="Query 8 读取位置 3"></span><span></span><span class="on" title="Query 8 读取位置 5"></span><span></span><span></span><span class="on" title="Query 8 读取位置 8"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 9 读取位置 1"></span><span></span><span class="on" title="Query 9 读取位置 3"></span><span></span><span></span><span class="on" title="Query 9 读取位置 6"></span><span></span><span></span><span class="on" title="Query 9 读取位置 9"></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 10 读取位置 1"></span><span></span><span></span><span class="on" title="Query 10 读取位置 4"></span><span></span><span></span><span class="on" title="Query 10 读取位置 7"></span><span></span><span></span><span class="on" title="Query 10 读取位置 10"></span><span></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 11 读取位置 1"></span><span></span><span></span><span class="on" title="Query 11 读取位置 4"></span><span></span><span></span><span class="on" title="Query 11 读取位置 7"></span><span></span><span></span><span></span><span class="on" title="Query 11 读取位置 11"></span><span></span><span></span><span></span><span></span><span></span><span class="on" title="Query 12 读取位置 1"></span><span></span><span></span><span class="on" title="Query 12 读取位置 4"></span><span></span><span></span><span></span><span class="on" title="Query 12 读取位置 8"></span><span></span><span></span><span></span><span class="on" title="Query 12 读取位置 12"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 1"></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 5"></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 9"></span><span></span><span></span><span></span><span class="on" title="Query 13 读取位置 13"></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 1"></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 5"></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 9"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 14 读取位置 14"></span><span></span><span></span><span class="on" title="Query 15 读取位置 1"></span><span></span><span></span><span></span><span class="on" title="Query 15 读取位置 5"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 15 读取位置 10"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 15 读取位置 15"></span><span></span><span class="on" title="Query 16 读取位置 1"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 16 读取位置 6"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 16 读取位置 11"></span><span></span><span></span><span></span><span></span><span class="on" title="Query 16 读取位置 16"></span></div><span class="diagram-note">动态选择相关的历史位置</span></div></div><figcaption>蓝色表示正式 Attention 参与计算的位置，DSA 的选择结果随 Query 动态变化。</figcaption></figure>
+<p>对于 DSA，每个 Query 都可以选择不同的历史 Token，而且不同模型层也可以选出不同的 Token。</p>
+</section>
+<section id="cost" class="level2">
+<h2>6. DSA 到底节省了多少计算量？</h2>
+<p>假设 Top-K 固定为 2048，仅比较正式 Attention 阶段每个 Query 需要处理的历史 Token 数量。</p>
+<figure class="widget calculator" aria-label="主 Attention 匹配数量比较">
+  <div class="context-picker"><label for="context-length">上下文长度<br>T</label><select id="context-length"><option value="1024">1K</option><option value="2048">2K</option><option value="4096">4K</option><option value="8192">8K</option><option value="16384">16K</option><option value="32768">32K</option><option value="65536">64K</option><option value="131072" selected>128K</option><option value="262144">256K</option><option value="524288">512K</option><option value="1048576">1M</option></select></div>
+  <div class="comparison-row">
+    <div><span>Full Attention</span><strong id="full-count">131,072</strong></div>
+    <div class="compare-track" aria-hidden="true"><span class="full-track"></span></div>
+  </div>
+  <div class="comparison-row">
+    <div><span>DSA 主 Attention</span><strong id="sparse-count">2,048</strong></div>
+    <div class="compare-track" aria-hidden="true"><span id="sparse-track" style="width:1.5625%"></span></div>
+  </div>
+  <div class="widget-rule"></div>
+  <div class="metrics" aria-live="polite">
+    <div><span>主 Attention 匹配数量缩减倍数</span><strong id="ratio">64×</strong></div>
+    <div><span>实际参与主 Attention 的比例</span><strong id="percentage">1.563%</strong></div>
+  </div>
+  <figcaption class="widget-note">不包含 Indexer、Top-K 排序及其他模型计算，不代表端到端推理加速倍数。</figcaption>
+</figure>
+<p>但是这里有一个非常重要的问题。</p>
+<p><strong>Indexer 自己不还是需要遍历全部 Token 吗？</strong></p>
+<p>是的。</p>
+<p>因此，如果严格分析复杂度：</p>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">计算阶段</th>
+<th style="text-align: left;">Full Attention</th>
+<th style="text-align: left;">DSA</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Prefill 主 Attention</td>
+<td style="text-align: left;">O(T²)</td>
+<td style="text-align: left;">O(TK)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Prefill Indexer</td>
+<td style="text-align: left;">无</td>
+<td style="text-align: left;">O(T²)</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Decode 主 Attention</td>
+<td style="text-align: left;">O(T)</td>
+<td style="text-align: left;">O(K)</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Decode Indexer</td>
+<td style="text-align: left;">无</td>
+<td style="text-align: left;">O(T)</td>
+</tr>
+</tbody>
+</table></div>
+<p>以上省略了特征维度、Head 数量和 Top-K 选择本身的计算成本。</p>
+<p>DSA 并没有彻底消除平方复杂度，而是将昂贵的全量 Attention 替换为低成本的全量索引计算，加上高成本的稀疏 Attention。</p>
+<p>随着上下文继续扩大，Indexer 本身也可能成为性能瓶颈。</p>
+</section>
+<section id="training" class="level2">
+<h2>7. Indexer 是怎么训练出来的？</h2>
+<p>这可能是 DSA 最有意思的地方。</p>
+<p>如果 Indexer 选错了 Token，就可能丢失关键信息。因此 DeepSeek 采用了两个阶段进行继续预训练。</p>
+<figure class="diagram training" aria-label="Indexer 的两阶段训练过程">
+  <div class="widget-label">阶段一：Dense Warm-up</div>
+  <div class="diagram-box "><span class="diagram-label">原有 Dense Attention</span><span class="diagram-note">提供真实注意力权重分布</span></div>
+  <div class="arrow training-arrow">↓ <span>作为训练目标</span></div>
+  <div class="diagram-box "><span class="diagram-label">Lightning Indexer</span><span class="diagram-note">学习预测哪些 Token 更重要</span></div>
+  <div class="diagram-math training-math"><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>ℒ</mi><mrow><mi>i</mi><mi>n</mi><mi>d</mi><mi>e</mi><mi>x</mi></mrow></msub><mo>=</mo><msub><mi>D</mi><mrow><mi>K</mi><mi>L</mi></mrow></msub><mspace width="-0.167em"></mspace><mrow><mo stretchy="true" form="prefix">(</mo><msub><mi>P</mi><mrow><mi>a</mi><mi>t</mi><mi>t</mi><mi>e</mi><mi>n</mi><mi>t</mi><mi>i</mi><mi>o</mi><mi>n</mi></mrow></msub><mo>∥</mo><msub><mi>P</mi><mrow><mi>i</mi><mi>n</mi><mi>d</mi><mi>e</mi><mi>x</mi></mrow></msub><mo stretchy="true" form="postfix">)</mo></mrow></mrow><annotation encoding="application/x-tex">\mathcal{L}_{index}=D_{KL}\!\left(P_{attention}\parallel P_{index}\right)</annotation></semantics></math></div>
+  <p class="diagram-note">冻结原模型权重，只训练 Indexer，通过 KL 散度使索引分布接近原始注意力分布。</p>
+  <div class="widget-rule"></div>
+  <div class="widget-label">阶段二：Sparse Training</div>
+  <div class="diagram-box filled"><span class="diagram-label">Indexer → Top-K → Sparse Attention</span></div>
+  <div class="arrow training-down" aria-hidden="true">↓</div>
+  <div class="diagram-pair">
+    <div class="diagram-box "><span class="diagram-label">Indexer</span><span class="diagram-note">索引分布对齐损失</span></div>
+    <div class="diagram-box "><span class="diagram-label">主模型</span><span class="diagram-note">Language Modeling Loss</span></div>
+  </div>
+  <p class="diagram-note">继续训练 Indexer 和主模型，使主模型逐渐适应稀疏注意力结构。</p>
+</figure>
+<p>DeepSeek-V3.2 论文公开的训练规模：</p>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">阶段</th>
+<th style="text-align: right;">训练步数</th>
+<th style="text-align: right;">训练 Token 数量</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">Dense Warm-up</td>
+<td style="text-align: right;">1,000</td>
+<td style="text-align: right;">2.1B</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Sparse Training</td>
+<td style="text-align: right;">15,000</td>
+<td style="text-align: right;">943.7B</td>
+</tr>
+</tbody>
+</table></div>
+<p><a class="source" href="https://arxiv.org/html/2512.02556v1#S2.SS1.SSS1">DeepSeek-V3.2 技术报告</a></p>
+<p>因此 DSA 并不是简单地给原模型增加一个 Top-K 函数，而是需要让模型通过训练适应这种新的信息选择机制。</p>
+</section>
+<section id="python" class="level2">
+<h2>8. 使用 Python 理解 DSA</h2>
+<p>下面是一个简化版的 DSA 核心计算，不涉及 MLA 压缩、FP8 和实际 GPU Kernel 优化。</p>
+<figure class="code-card" aria-label="Python 示例"><figcaption><span>Python</span><button type="button" id="copy-code">复制代码</button></figcaption><div class="sourceCode" id="cb1"><pre class="sourceCode python"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> torch.nn.functional <span class="im">as</span> F</span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># 主注意力 QKV</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Q, K, V: [B, H, T, D]</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="co"># 索引器 Q、K</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Q_index: [B, T, H_index, D_index]</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="co"># K_index: [B, T, D_index]</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># weights: [B, T, H_index]</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Lightning Indexer</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> torch.einsum(</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">&quot;bthd,bsd-&gt;btsh&quot;</span>, Q_index, K_index</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> F.relu(scores)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> (</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    scores <span class="op">*</span> weights.unsqueeze(<span class="dv">2</span>)</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>).<span class="bu">sum</span>(dim<span class="op">=-</span><span class="dv">1</span>)</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># scores: [B, T, T]</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Causal Mask</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>T <span class="op">=</span> scores.shape[<span class="op">-</span><span class="dv">1</span>]</span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>mask <span class="op">=</span> torch.ones(</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    T, T,</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    dtype<span class="op">=</span>torch.<span class="bu">bool</span>,</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    device<span class="op">=</span>scores.device</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>).triu(<span class="dv">1</span>)</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>scores <span class="op">=</span> scores.masked_fill(</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    mask, <span class="bu">float</span>(<span class="st">&quot;-inf&quot;</span>)</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Top-K Selection</span></span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>topk <span class="op">=</span> <span class="bu">min</span>(<span class="dv">2048</span>, T)</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>indices <span class="op">=</span> torch.topk(</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>    scores, k<span class="op">=</span>topk, dim<span class="op">=-</span><span class="dv">1</span></span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>).indices</span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a><span class="co"># indices: [B, T, topk]</span></span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. 主 Attention</span></span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a><span class="co"># 根据 indices 获取对应的 KV</span></span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a><span class="co"># 仅对选中的 KV 执行 Attention</span></span></code></pre></div><output id="copy-status" class="screen-reader" aria-live="polite"></output></figure>
+<p>实际生产实现需要使用专门的稀疏 Attention Kernel，否则即使构造了稀疏 Mask，也可能仍然执行稠密矩阵计算，无法真正获得性能收益。</p>
+</section>
+<section id="comparison" class="level2">
+<h2>9. MHA、GQA、MLA、DSA 的第一性原理对比</h2>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">机制</th>
+<th style="text-align: left;">优化对象</th>
+<th style="text-align: left;">核心思想</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MHA</td>
+<td style="text-align: left;">信息表示能力</td>
+<td style="text-align: left;">多个独立注意力头</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MQA</td>
+<td style="text-align: left;">KV Cache</td>
+<td style="text-align: left;">所有 Q Head 共享 KV</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">GQA</td>
+<td style="text-align: left;">KV Cache</td>
+<td style="text-align: left;">分组共享 KV</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">MLA</td>
+<td style="text-align: left;">KV Cache</td>
+<td style="text-align: left;">低秩潜在空间压缩</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">FlashAttention</td>
+<td style="text-align: left;">显存读写</td>
+<td style="text-align: left;">分块计算、在线 Softmax</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">DSA</td>
+<td style="text-align: left;">注意力计算范围</td>
+<td style="text-align: left;">动态选择相关 Token</td>
+</tr>
+</tbody>
+</table></div>
+<p>这些机制并不是互相排斥的。</p>
+<p>例如 DeepSeek-V3.2 就是将 MLA 与 DSA 结合：</p>
+<figure class="diagram mla" aria-label="DeepSeek-V3.2 结合 MLA 与 DSA">
+  <div class="diagram-box filled"><span class="diagram-label">历史上下文</span><span class="diagram-note">所有历史 Token</span></div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-pair">
+    <div class="diagram-box "><span class="diagram-label">MLA</span><span class="diagram-note">降低每个 Token 的 KV 存储成本</span></div>
+    <div class="diagram-box "><span class="diagram-label">DSA</span><span class="diagram-note">降低需要参与正式计算的 Token 数量</span></div>
+  </div>
+  <div class="arrow" aria-hidden="true">↓</div>
+  <div class="diagram-box filled"><span class="diagram-label">高效长上下文 Attention</span></div>
+</figure>
+<p>需要注意，DSA 通常仍然需要保留所有历史 Token 的 KV Cache，因为当前 Query 不需要某个 Token，不代表未来的 Query 也不需要它。</p>
+</section>
+<section id="principle" class="level2">
+<h2>10. 从第一性原理理解 DSA</h2>
+<p>传统 Transformer 的假设是：</p>
+<blockquote>
+<p>每个 Token 都应该计算自己与所有历史 Token 之间的注意力关系。</p>
+</blockquote>
+<p>DSA 则改变了这个假设：</p>
+<blockquote>
+<p>信息的重要性是不均匀的，可以先进行低成本筛选，再对少量重要信息进行高成本计算。</p>
+</blockquote>
+<p>从架构思想来看，DSA 有些类似于将检索机制引入 Transformer 的内部。</p>
+<p>它与 MoE 甚至存在一定的思想共性：</p>
+<div class="table-scroll"><table>
+<thead>
+<tr class="header">
+<th style="text-align: left;">架构</th>
+<th style="text-align: left;">动态选择的对象</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">MoE</td>
+<td style="text-align: left;">哪些专家参与计算</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">DSA</td>
+<td style="text-align: left;">哪些历史 Token 参与注意力计算</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">RAG</td>
+<td style="text-align: left;">哪些外部文档进入模型上下文</td>
+</tr>
+</tbody>
+</table></div>
+<p>三者都在探索同一个问题：如何在拥有大量可用信息或计算资源的情况下，只激活当前任务真正需要的部分。</p>
+<p><strong>DSA 的核心价值是将计算资源从全量分配转变为按信息相关性动态分配。</strong> 这也是长上下文模型能够进一步扩展的重要技术方向。</p>
+<p>原始论文：<a href="https://arxiv.org/abs/2512.02556">DeepSeek-V3.2: Pushing the Frontier of Open Large Language Models</a>。</p>
+</section>
+
+</article>
+</main>
+<script>
+(() => {
+  const slider = document.querySelector('#top-k');
+  const columns = [...document.querySelectorAll('.plot-column')].map((element, index) => ({
+    element, index: index + 1, score: Number(element.dataset.score)
+  }));
+  const ranked = [...columns].sort((a, b) => b.score - a.score || a.index - b.index);
+  const selectedList = document.querySelector('#chosen-tokens');
+  const count = document.querySelector('#dsa-count');
+  const sliderLabel = document.querySelector('#k-value');
+  const chart = document.querySelector('.chart');
+
+  slider.addEventListener('input', () => {
+    const k = Number(slider.value);
+    const chosen = new Set(ranked.slice(0, k).map(token => token.index));
+    sliderLabel.value = 'Top-K = ' + k;
+    slider.setAttribute('aria-valuetext', 'Top-K = ' + k);
+    count.textContent = k;
+    const chips = columns.filter(token => chosen.has(token.index)).map(token => {
+      const chip = document.createElement('li');
+      const score = document.createElement('strong');
+      chip.textContent = 'Token ' + token.index;
+      score.textContent = token.score.toFixed(2);
+      chip.append(score);
+      return chip;
+    });
+    columns.forEach(token => token.element.classList.toggle('on', chosen.has(token.index)));
+    chart.setAttribute('aria-label', '20 个 Token 的索引分数柱状图。选中位置 ' + columns.filter(token => chosen.has(token.index)).map(token => token.index).join('、') + '。');
+    selectedList.replaceChildren(...chips);
+  });
+
+  const context = document.querySelector('#context-length');
+  const full = document.querySelector('#full-count');
+  const sparse = document.querySelector('#sparse-count');
+  const sparseTrack = document.querySelector('#sparse-track');
+  const ratio = document.querySelector('#ratio');
+  const percentage = document.querySelector('#percentage');
+  const integers = new Intl.NumberFormat('en-US');
+  const percentages = new Intl.NumberFormat('en-US', {maximumFractionDigits: 3, minimumFractionDigits: 3});
+
+  context.addEventListener('change', () => {
+    const visible = Number(context.value);
+    const kept = Math.min(visible, 2048);
+    const share = 100 * kept / visible;
+    full.textContent = integers.format(visible);
+    sparse.textContent = integers.format(kept);
+    sparseTrack.style.width = share + '%';
+    ratio.textContent = integers.format(visible / kept) + '×';
+    percentage.textContent = percentages.format(share) + '%';
+  });
+
+  const copy = document.querySelector('#copy-code');
+  const status = document.querySelector('#copy-status');
+  copy.addEventListener('click', async () => {
+    const code = document.querySelector('.code-card code');
+    try {
+      await navigator.clipboard.writeText(code.textContent);
+      copy.textContent = '已复制';
+      status.value = 'Python 代码已复制';
+    } catch {
+      const range = document.createRange();
+      range.selectNodeContents(code);
+      const selection = window.getSelection();
+      selection.removeAllRanges();
+      selection.addRange(range);
+      copy.textContent = '代码已选中';
+      status.value = '代码已选中，可使用系统快捷键复制';
+    }
+  });
+})();
+
+</script>
+</body>
+</html>
