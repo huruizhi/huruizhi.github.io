@@ -3,6 +3,8 @@ layout: post
 title: "从第一性原理理解DSA"
 date: 2026-11-25 00:00:00 +0800
 permalink: /ai/architecture/2026/11/25/deepseek-sparse-attention/
+article_url: /ai/architecture/dsa/
+evidence_anchor: selection
 categories: [AI, architecture]
 tags: [DeepSeek, Transformer, DSA, MLA]
 description: "从 Lightning Indexer 和 Top-K 筛选出发，用交互图表理解 DeepSeek-V3.2 的稀疏注意力。"
