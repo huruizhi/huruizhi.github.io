@@ -1,6 +1,12 @@
 <footer class="site-footer">
   <div class="site-footer__inner">
-    <p>© {{ site.time | date: '%Y' }} 睿智的技术博客</p>
-    <p>软件工程、AI 与技术实践</p>
+    <div class="site-footer__meta">
+      <span>© {{ site.time | date: '%Y' }} 睿智的技术博客</span>
+      <span class="site-footer__sep" aria-hidden="true">·</span>
+      <span>软件工程 · AI 架构 · 技术实践</span>
+    </div>
+    <div class="site-footer__stats" aria-label="网站访问统计">
+      <img src="https://hits.sh/huruizhi.github.io.svg?style=flat-square&amp;label=views&amp;color=10b981&amp;labelColor=111318" alt="本站累计访问量" referrerpolicy="no-referrer" loading="lazy">
+    </div>
   </div>
 </footer>

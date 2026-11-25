@@ -3,7 +3,8 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#f3efe6">
+    <meta name="color-scheme" content="dark">
+    <meta name="theme-color" content="#0b0c0e">
     {%- seo -%}
     <link rel="alternate" type="application/atom+xml" title="{{ site.title }}" href="{{ '/feed.xml' | relative_url }}">
     <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
@@ -29,7 +30,9 @@
         blocks.forEach(function (code, index) {
           var container = document.createElement('div');
           container.className = 'mermaid';
-          if (index === 0) container.id = 'evidence-01';
+          if (index === 0 && !document.getElementById('evidence-01')) {
+            container.id = 'evidence-01';
+          }
           container.setAttribute('role', 'img');
           container.setAttribute('aria-label', 'Mermaid 图示 ' + (index + 1));
           container.textContent = code.textContent;
@@ -42,16 +45,35 @@
             securityLevel: 'strict',
             theme: 'base',
             themeVariables: {
-              primaryColor: '#f0d6d0',
-              primaryTextColor: '#171717',
-              primaryBorderColor: '#a92f26',
-              lineColor: '#625d56',
-              secondaryColor: '#e8e0d3',
-              tertiaryColor: '#fffdf8'
+              darkMode: true,
+              background: '#111318',
+              primaryColor: '#122620',
+              primaryTextColor: '#e6e8ec',
+              primaryBorderColor: '#34d399',
+              lineColor: '#52606d',
+              secondaryColor: '#161b22',
+              tertiaryColor: '#111318',
+              mainBkg: '#122620',
+              nodeBorder: '#34d399',
+              clusterBkg: '#0d0f14',
+              clusterBorder: '#262d38',
+              titleColor: '#e6e8ec',
+              edgeLabelBackground: '#111318',
+              textColor: '#e6e8ec'
             }
           });
           window.mermaid.run({ querySelector: '.mermaid' });
         }
+
+        // Auto-open WeChat drawer when clicking any #wechat anchor
+        document.querySelectorAll('a[href$="#wechat"]').forEach(function (link) {
+          link.addEventListener('click', function () {
+            var drawer = document.getElementById('wechat-drawer');
+            if (drawer && drawer.tagName === 'DETAILS') {
+              drawer.open = true;
+            }
+          });
+        });
       });
     </script>
   </head>

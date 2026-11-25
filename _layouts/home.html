@@ -3,59 +3,237 @@ layout: default
 ---
 {% assign latest = site.posts.first %}
 <div class="home-shell">
-  {% if latest %}
-  {% assign latest_url = latest.article_url | default: latest.url %}
-  {% assign evidence_anchor = latest.evidence_anchor | default: "evidence-01" %}
-  <section class="lead-story" aria-labelledby="lead-title">
-    <div class="lead-story__copy">
-      <p class="eyebrow">最新文章 · {{ latest.date | date: "%Y.%m.%d" }}</p>
-      <h1 id="lead-title"><a href="{{ latest_url | relative_url }}">{{ latest.title }}</a></h1>
-      <p class="lead-story__summary">{{ latest.description | default: latest.excerpt | strip_html | truncate: 140 }}</p>
-      <a class="text-action" href="{{ latest_url | relative_url }}">打开全文 <span aria-hidden="true">→</span></a>
-    </div>
-    <a class="evidence-window" href="{{ latest_url | relative_url }}#{{ evidence_anchor }}" aria-label="查看最新文章的证据 01">
-      <span class="evidence-window__top">
-        <span>证据 01</span>
-        <span>{{ latest.evidence_label | default: "工程路径" }}</span>
-      </span>
-      <span class="evidence-window__flow" aria-hidden="true">
-        {% if latest.evidence_steps %}
-          {% for step in latest.evidence_steps %}
-            <span class="evidence-node">{{ step }}</span>
-            {% unless forloop.last %}<span class="evidence-arrow">→</span>{% endunless %}
-          {% endfor %}
-        {% else %}
-          <span class="evidence-node">问题</span><span class="evidence-arrow">→</span><span class="evidence-node">验证</span><span class="evidence-arrow">→</span><span class="evidence-node">结论</span>
+  <section class="hero-panel" id="hero-panel" aria-labelledby="hero-title">
+    <div class="hero-panel__copy">
+      <p class="eyebrow">// first_principles.log</p>
+      <h1 id="hero-title">{{ site.title }}</h1>
+      <p class="hero-panel__summary">记录软件工程、AI 模型架构与分布式系统实践。偏爱从第一性原理、固定版本源码与可核验数据出发把复杂问题讲透。</p>
+      <div class="hero-panel__actions">
+        {% if latest %}
+        {% assign latest_url = latest.article_url | default: latest.url %}
+        <a class="hero-latest" href="{{ latest_url | relative_url }}">
+          <span class="hero-latest__icon" aria-hidden="true">▶</span>
+          <span class="hero-latest__text">最新：{{ latest.title }}</span>
+          <span class="hero-latest__arrow" aria-hidden="true">→</span>
+        </a>
         {% endif %}
-      </span>
-      <span class="evidence-window__caption">{{ latest.evidence_caption | default: "从可核验的工程细节进入文章" }}</span>
-    </a>
+        <button type="button" class="ascii-toggle" id="ascii-toggle" aria-label="暂停或继续字符波纹动画">[pause]</button>
+      </div>
+    </div>
+    <div class="hero-panel__art" aria-hidden="true">
+      <pre class="ascii-wave" id="ascii-wave">  ·:-=+*<span class="ascii-hi">#%@%#</span>*+=-:·   ·:-=+*<span class="ascii-hi">#%</span>
+ ·:-=+*<span class="ascii-hi">#%@@@%#</span>*+=-:· ·:-=+*<span class="ascii-hi">#%@</span>
+·:-=+*<span class="ascii-hi">#%@</span>*+=-<span class="ascii-hi">@%#</span>*+=-:-=+*<span class="ascii-hi">#%@</span>*+
+:-=+*<span class="ascii-hi">#%</span>*+-:·:-+<span class="ascii-hi">%#</span>*+===+*<span class="ascii-hi">#%</span>*+-:
+-=+*<span class="ascii-hi">#%</span>+-:·   ·:-+<span class="ascii-hi">%#</span>***<span class="ascii-hi">#%</span>+-:·  
+:-=+*<span class="ascii-hi">#%</span>*+-:·:-+<span class="ascii-hi">%#</span>*+===+*<span class="ascii-hi">#%</span>*+-:
+·:-=+*<span class="ascii-hi">#%@</span>*+=-<span class="ascii-hi">@%#</span>*+=-:-=+*<span class="ascii-hi">#%@</span>*+
+ ·:-=+*<span class="ascii-hi">#%@@@%#</span>*+=-:· ·:-=+*<span class="ascii-hi">#%@</span>
+  ·:-=+*<span class="ascii-hi">#%@%#</span>*+=-:·   ·:-=+*<span class="ascii-hi">#%</span>
+   ·:-=+**<span class="ascii-hi">#</span>**+=-:·     ·:-=+**</pre>
+    </div>
   </section>
-  {% endif %}
+
+  <section class="lab-section" id="interactive-lab" aria-labelledby="lab-heading">
+    <div class="ascii-section-bar">
+      <h2 id="lab-heading" class="ascii-section-bar__title">┌── INTERACTIVE_LAB · 可交互第一性原理图解</h2>
+      <span class="ascii-section-bar__meta">[2 playgrounds]</span>
+    </div>
+    <div class="lab-grid">
+      <a class="lab-card" href="{{ '/ai/architecture/loop-transformer/' | relative_url }}">
+        <span class="lab-card__top">
+          <span class="lab-card__badge">╔═ LAB_01 ═╗</span>
+          <span class="lab-card__spec">78 → 106 steps</span>
+        </span>
+        <strong class="lab-card__title">从第一性原理理解 Loop Transformer</strong>
+        <span class="lab-card__desc">调节循环轮数与两轮 Gate 滑块，实时观察 GLM‑5.4 共享权重、有效计算深度与门控更新幅度。</span>
+      </a>
+      <a class="lab-card" href="{{ '/ai/architecture/dsa/' | relative_url }}">
+        <span class="lab-card__top">
+          <span class="lab-card__badge">╔═ LAB_02 ═╗</span>
+          <span class="lab-card__spec">top-k sparse</span>
+        </span>
+        <strong class="lab-card__title">从第一性原理理解 DeepSeek Sparse Attention</strong>
+        <span class="lab-card__desc">用 20 Token 注意力矩阵对比全量注意力、滑动窗口与 DSA，动态调整 Top‑K 与上下文长度。</span>
+      </a>
+    </div>
+  </section>
 
   <section class="article-index" id="articles" aria-labelledby="articles-title">
-    <div class="section-heading">
-      <p class="eyebrow">Archive / 归档</p>
-      <h2 id="articles-title">全部文章</h2>
-      <span>{{ site.posts | size }} 篇</span>
+    <div class="archive-toolbar">
+      <h2 id="articles-title" class="archive-toolbar__cmd">
+        <span class="archive-toolbar__prompt" aria-hidden="true">$</span> tree ~/posts <span class="archive-toolbar__count" id="archive-count">--count={{ site.posts | size }}</span>
+      </h2>
+      <div class="archive-filters" role="toolbar" aria-label="按主题筛选文章">
+        <button type="button" class="filter-chip is-active" data-filter="all" aria-pressed="true">[all]</button>
+        <button type="button" class="filter-chip" data-filter="arch" aria-pressed="false">ai-arch</button>
+        <button type="button" class="filter-chip" data-filter="agent" aria-pressed="false">agent</button>
+        <button type="button" class="filter-chip" data-filter="git" aria-pressed="false">git</button>
+        <button type="button" class="filter-chip" data-filter="infra" aria-pressed="false">infra</button>
+      </div>
     </div>
-    <div class="article-list">
-      {% for post in site.posts %}
-      {% assign article_url = post.article_url | default: post.url %}
-      <article class="article-row">
-        <div class="article-row__meta">
-          <time datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%Y.%m.%d" }}</time>
-          <span>{{ post.categories | join: " / " }}</span>
+
+    {% assign posts_by_year = site.posts | group_by_exp: "post", "post.date | date: '%Y'" %}
+    <div class="archive-years">
+      {% for year_group in posts_by_year %}
+      <div class="archive-year-block" data-year-block>
+        <div class="archive-year-label">{{ year_group.name }}/</div>
+        <div class="article-tree">
+          {% for post in year_group.items %}
+          {% assign article_url = post.article_url | default: post.url %}
+          {% assign cats_str = post.categories | join: "," | downcase %}
+          {% if cats_str contains "git" %}
+            {% assign post_group = "git" %}
+          {% elsif cats_str contains "agent" or cats_str contains "mcp" %}
+            {% assign post_group = "agent" %}
+          {% elsif cats_str contains "rag" or cats_str contains "搜索" or cats_str contains "推理" or cats_str contains "embedding" %}
+            {% assign post_group = "infra" %}
+          {% else %}
+            {% assign post_group = "arch" %}
+          {% endif %}
+
+          {% assign is_lab = false %}
+          {% if post.article_url or post.url contains "deepseek-sparse-attention" or post.url contains "loop-transformer" %}
+            {% assign is_lab = true %}
+          {% endif %}
+          {% assign short_cat = post.categories | last | default: "note" | downcase %}
+
+          <article class="tree-row" data-group="{{ post_group }}">
+            <span class="tree-row__branch" aria-hidden="true">{% if forloop.last %}└─{% else %}├─{% endif %}</span>
+            <time class="tree-row__date" datetime="{{ post.date | date_to_xmlschema }}">{{ post.date | date: "%m-%d" }}</time>
+            <h3 class="tree-row__heading">
+              <a class="tree-row__link" href="{{ article_url | relative_url }}">{{ post.title }}</a>
+            </h3>
+            <span class="tree-row__dots" aria-hidden="true"></span>
+            {% if is_lab %}
+            <span class="tree-row__tag tree-row__tag--lab">[lab]</span>
+            {% else %}
+            <span class="tree-row__tag">{{ short_cat }}</span>
+            {% endif %}
+          </article>
+          {% endfor %}
         </div>
-        <div class="article-row__body">
-          <h3><a href="{{ article_url | relative_url }}">{{ post.title }}</a></h3>
-          <p>{{ post.description | default: post.excerpt | strip_html | truncate: 110 }}</p>
-        </div>
-        <a class="article-row__arrow" href="{{ article_url | relative_url }}" aria-label="阅读《{{ post.title }}》">→</a>
-      </article>
+      </div>
       {% endfor %}
     </div>
   </section>
 
   {% include wechat-follow.html %}
 </div>
+
+<script>
+  (function () {
+    // 1. Pattern B: Interactive ASCII Interference Wave Field
+    var waveEl = document.getElementById('ascii-wave');
+    var heroEl = document.getElementById('hero-panel');
+    var toggleBtn = document.getElementById('ascii-toggle');
+    var prefersReduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var paused = prefersReduced;
+    var W = 30;
+    var H = 10;
+    var ramp = ' ·:-=+*#%@';
+    var tick = 0;
+    var targetX = 0.38, targetY = 0.48;
+    var curX = 0.38, curY = 0.48;
+
+    if (toggleBtn && paused) {
+      toggleBtn.textContent = '[play]';
+    }
+
+    function drawWave() {
+      if (!waveEl) return;
+      curX += (targetX - curX) * 0.14;
+      curY += (targetY - curY) * 0.14;
+      var cx = curX * W;
+      var cy = curY * H;
+      var out = '';
+
+      for (var y = 0; y < H; y++) {
+        for (var x = 0; x < W; x++) {
+          var dx = x - cx;
+          var dy = (y - cy) * 1.85;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          var v = Math.sin(dist * 0.64 - tick * 2.15) + Math.cos(x * 0.29 + tick * 0.95) * 0.52;
+          var norm = (v + 1.52) / 3.04;
+          var idx = Math.max(0, Math.min(ramp.length - 1, Math.floor(norm * ramp.length)));
+          var ch = ramp.charAt(idx);
+          if (idx >= 7) {
+            out += '<span class="ascii-hi">' + ch + '</span>';
+          } else {
+            out += ch;
+          }
+        }
+        if (y < H - 1) out += '\n';
+      }
+      waveEl.innerHTML = out;
+    }
+
+    if (heroEl) {
+      heroEl.addEventListener('pointermove', function (e) {
+        var rect = heroEl.getBoundingClientRect();
+        if (!rect.width || !rect.height) return;
+        targetX = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+        targetY = Math.max(0, Math.min(1, (e.clientY - rect.top) / rect.height));
+        if (paused) drawWave();
+      });
+    }
+
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', function () {
+        paused = !paused;
+        toggleBtn.textContent = paused ? '[play]' : '[pause]';
+      });
+    }
+
+    drawWave();
+    setInterval(function () {
+      if (paused || document.hidden) return;
+      tick += 0.055;
+      drawWave();
+    }, 65);
+
+    // 2. Category Filter + Dynamic Tree Branch Recalculation
+    var chips = document.querySelectorAll('.filter-chip');
+    var countEl = document.getElementById('archive-count');
+    var yearBlocks = document.querySelectorAll('[data-year-block]');
+
+    function applyFilter(group) {
+      var totalVisible = 0;
+      yearBlocks.forEach(function (block) {
+        var rows = block.querySelectorAll('.tree-row');
+        var visibleRows = [];
+        rows.forEach(function (row) {
+          var match = group === 'all' || row.getAttribute('data-group') === group;
+          row.hidden = !match;
+          if (match) visibleRows.push(row);
+        });
+        visibleRows.forEach(function (row, idx) {
+          var branch = row.querySelector('.tree-row__branch');
+          if (branch) {
+            branch.textContent = idx === visibleRows.length - 1 ? '└─' : '├─';
+          }
+        });
+        block.hidden = visibleRows.length === 0;
+        totalVisible += visibleRows.length;
+      });
+      if (countEl) {
+        countEl.textContent = '--count=' + totalVisible;
+      }
+    }
+
+    chips.forEach(function (chip) {
+      chip.addEventListener('click', function () {
+        var group = chip.getAttribute('data-filter') || 'all';
+        chips.forEach(function (c) {
+          var active = c === chip;
+          c.classList.toggle('is-active', active);
+          c.setAttribute('aria-pressed', active ? 'true' : 'false');
+          var raw = c.getAttribute('data-label') || c.textContent.replace(/^\[|\]$/g, '');
+          c.setAttribute('data-label', raw);
+          c.textContent = active ? '[' + raw + ']' : raw;
+        });
+        applyFilter(group);
+      });
+    });
+  })();
+</script>

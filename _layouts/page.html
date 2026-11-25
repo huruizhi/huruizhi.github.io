@@ -2,9 +2,25 @@
 layout: default
 ---
 <article class="page-shell">
+  <div class="post-ascii-bar" role="navigation" aria-label="页面返回导航">
+    <div class="post-ascii-bar__left">
+      <span class="post-ascii-bar__corner" aria-hidden="true">╭─</span>
+      <a class="post-ascii-bar__back" href="{{ '/' | relative_url }}">← cd ~</a>
+      <span class="post-ascii-bar__sep" aria-hidden="true">─┬─</span>
+      <span class="post-ascii-bar__cat">page://{{ page.url | remove: '/' | default: 'index' }}</span>
+    </div>
+    <div class="post-ascii-bar__right" aria-hidden="true">
+      <span class="post-ascii-bar__corner">─╮</span>
+    </div>
+  </div>
+
   <header class="page-header">
-    <p class="eyebrow">Site / 站点</p>
     <h1>{{ page.title }}</h1>
   </header>
-  <div class="post-content">{{ content }}</div>
+
+  <div class="post-content">
+    {{ content }}
+  </div>
+
+  {% include wechat-follow.html %}
 </article>
