@@ -569,6 +569,14 @@ img {
   color: var(--accent);
 }
 
+.wechat-drawer__chevron::before {
+  content: "▾";
+}
+
+.wechat-drawer[open] .wechat-drawer__chevron::before {
+  content: "▴";
+}
+
 .wechat-drawer__body {
   display: flex;
   align-items: center;
