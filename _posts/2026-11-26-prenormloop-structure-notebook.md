@@ -4,7 +4,7 @@ title: "PreNormLoop-0.6B 模型结构"
 date: 2026-11-26 22:30:00 +0800
 permalink: /ai/architecture/2026/11/26/prenormloop-structure-notebook/
 categories: [AI, architecture]
-tags: [Transformer, Loop Transformer, PreNormLoop, Notebook]
+tags: [GLM, Transformer, Loop Transformer, PreNormLoop, Notebook]
 description: "用 Transformers 在 meta 设备上查看 18 个共享块的真实模块树，逐行追踪第一轮末层如何把隐藏状态交给第二轮首层。"
 source_url: "https://huggingface.co/osunlp/PreNormLoop-0.6B"
 ---
