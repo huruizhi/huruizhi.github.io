@@ -36,25 +36,26 @@ layout: default
 
   <section class="lab-section" id="interactive-lab" aria-labelledby="lab-heading">
     <div class="ascii-section-bar">
-      <h2 id="lab-heading" class="ascii-section-bar__title">┌── INTERACTIVE_LAB · 可交互第一性原理图解</h2>
-      <span class="ascii-section-bar__meta">[2 playgrounds]</span>
+      <h2 id="lab-heading" class="ascii-section-bar__title">┌── LLM_RESEARCH · 大模型研究</h2>
+      <span class="ascii-section-bar__meta">[GLM / DeepSeek]</span>
     </div>
+    {% assign glm_posts = site.posts | where_exp: "post", "post.tags contains 'GLM'" %}
     <div class="lab-grid">
-      <a class="lab-card" href="{{ '/ai/architecture/loop-transformer/' | relative_url }}">
+      <a class="lab-card" href="{{ '/llm/glm/' | relative_url }}">
         <span class="lab-card__top">
-          <span class="lab-card__badge">╔═ LAB_01 ═╗</span>
-          <span class="lab-card__spec">78 → 106 steps</span>
+          <span class="lab-card__badge">╔═ GLM ═╗</span>
+          <span class="lab-card__spec">{{ glm_posts | size }} 篇研究</span>
         </span>
-        <strong class="lab-card__title">从第一性原理理解 Loop Transformer</strong>
-        <span class="lab-card__desc">调节循环轮数与两轮 Gate 滑块，实时观察 GLM‑5.4 共享权重、有效计算深度与门控更新幅度。</span>
+        <strong class="lab-card__title">GLM 模型研究合集</strong>
+        <span class="lab-card__desc">沿 GLM 系列模型梳理架构、循环计算与能力评估，从 GLM‑5.4 结构读到 Loop Transformer 和安全边界。</span>
       </a>
       <a class="lab-card" href="{{ '/ai/architecture/dsa/' | relative_url }}">
         <span class="lab-card__top">
-          <span class="lab-card__badge">╔═ LAB_02 ═╗</span>
-          <span class="lab-card__spec">top-k sparse</span>
+          <span class="lab-card__badge">╔═ DeepSeek ═╗</span>
+          <span class="lab-card__spec">DSA / MLA</span>
         </span>
         <strong class="lab-card__title">从第一性原理理解 DeepSeek Sparse Attention</strong>
-        <span class="lab-card__desc">用 20 Token 注意力矩阵对比全量注意力、滑动窗口与 DSA，动态调整 Top‑K 与上下文长度。</span>
+        <span class="lab-card__desc">从 Lightning Indexer、Top‑K 筛选与 KV 读取，理解 DeepSeek Sparse Attention 的长上下文计算。</span>
       </a>
     </div>
   </section>
@@ -66,7 +67,8 @@ layout: default
       </h2>
       <div class="archive-filters" role="toolbar" aria-label="按主题筛选文章">
         <button type="button" class="filter-chip is-active" data-filter="all" aria-pressed="true">[all]</button>
-        <button type="button" class="filter-chip" data-filter="arch" aria-pressed="false">ai-arch</button>
+        <button type="button" class="filter-chip" data-filter="llm" aria-pressed="false">LLM 研究</button>
+        <button type="button" class="filter-chip" data-filter="arch" aria-pressed="false">模型研究</button>
         <button type="button" class="filter-chip" data-filter="agent" aria-pressed="false">agent</button>
         <button type="button" class="filter-chip" data-filter="git" aria-pressed="false">git</button>
         <button type="button" class="filter-chip" data-filter="infra" aria-pressed="false">infra</button>
@@ -88,15 +90,16 @@ layout: default
             {% assign post_group = "agent" %}
           {% elsif cats_str contains "rag" or cats_str contains "搜索" or cats_str contains "推理" or cats_str contains "embedding" %}
             {% assign post_group = "infra" %}
+          {% elsif cats_str contains "architecture" or post.tags contains "GLM" %}
+            {% assign post_group = "llm" %}
           {% else %}
             {% assign post_group = "arch" %}
           {% endif %}
 
-          {% assign is_lab = false %}
-          {% if post.article_url or post.url contains "deepseek-sparse-attention" or post.url contains "loop-transformer" %}
-            {% assign is_lab = true %}
-          {% endif %}
           {% assign short_cat = post.categories | last | default: "note" | downcase %}
+          {% if post_group == "llm" %}
+            {% assign short_cat = "LLM 研究" %}
+          {% endif %}
 
           <article class="tree-row" data-group="{{ post_group }}">
             <span class="tree-row__branch" aria-hidden="true">{% if forloop.last %}└─{% else %}├─{% endif %}</span>
@@ -105,11 +108,7 @@ layout: default
               <a class="tree-row__link" href="{{ article_url | relative_url }}">{{ post.title }}</a>
             </h3>
             <span class="tree-row__dots" aria-hidden="true"></span>
-            {% if is_lab %}
-            <span class="tree-row__tag tree-row__tag--lab">[lab]</span>
-            {% else %}
             <span class="tree-row__tag">{{ short_cat }}</span>
-            {% endif %}
           </article>
           {% endfor %}
         </div>
