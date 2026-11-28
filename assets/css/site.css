@@ -260,6 +260,22 @@ img {
   transform: translateX(2px);
 }
 
+.hero-github {
+  padding: 5px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  color: var(--body);
+  font: 550 12px/1.4 var(--mono);
+  text-decoration: none;
+  transition: color var(--ease), border-color var(--ease);
+}
+
+.hero-github:hover,
+.hero-github:focus-visible {
+  color: var(--accent);
+  border-color: var(--accent-border);
+}
+
 .ascii-toggle {
   padding: 4px 6px;
   border: 0;
